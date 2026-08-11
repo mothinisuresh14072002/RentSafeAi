@@ -13,6 +13,7 @@ app = FastAPI(title="Rent Safe AI")
 origins = [
     "http://localhost",
     "http://localhost:5173", # Vite default port
+    "http://localhost:5174", # Vite alternative port
 ]
 
 app.add_middleware(

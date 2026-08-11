@@ -5,5 +5,8 @@ alembic
 pydantic
 pydantic-settings
 passlib[bcrypt]
+bcrypt==3.2.2
 python-jose[cryptography]
 python-multipart
+psycopg2-binary
+geoalchemy2

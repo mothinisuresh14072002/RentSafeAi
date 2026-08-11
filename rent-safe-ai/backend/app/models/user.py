@@ -8,7 +8,13 @@ from app.db.database import Base
 class UserRole(enum.Enum):
     TENANT = "TENANT"
     LANDLORD = "LANDLORD"
+    BROKER = "BROKER"
     ADMIN = "ADMIN"
+
+class VerificationLevel(enum.Enum):
+    UNVERIFIED = "UNVERIFIED"
+    ID_VERIFIED = "ID_VERIFIED"
+    BACKGROUND_CHECKED = "BACKGROUND_CHECKED"
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -20,6 +26,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.TENANT)
+    verification_level = Column(Enum(VerificationLevel), default=VerificationLevel.UNVERIFIED)
     first_name = Column(String)
     last_name = Column(String)
     phone = Column(String)
