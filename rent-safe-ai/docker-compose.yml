@@ -6,13 +6,25 @@ services:
     container_name: rent_safe_db
     environment:
       POSTGRES_USER: rentsafe
-      POSTGRES_PASSWORD: rentsafe_password
+      POSTGRES_PASSWORD: RentSafeAi@2026
       POSTGRES_DB: rentsafe
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_rentsafe:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: rent_safe_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@rentsafe.ai
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  postgres_data_rentsafe:

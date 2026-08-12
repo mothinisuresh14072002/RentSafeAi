@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "postgresql://rentsafe:rentsafe_password@localhost:5432/rentsafe"
+SQLALCHEMY_DATABASE_URL = "postgresql+psycopg2://rentsafe:RentSafeAi%402026@localhost:5432/rentsafe"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL

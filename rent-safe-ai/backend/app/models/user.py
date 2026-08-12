@@ -35,4 +35,4 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    properties = relationship("Property", back_populates="owner")
+    properties = relationship("Property", foreign_keys="[Property.owner_id]", back_populates="owner")
