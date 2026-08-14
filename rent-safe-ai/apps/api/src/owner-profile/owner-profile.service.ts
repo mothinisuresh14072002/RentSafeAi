@@ -93,7 +93,7 @@ export class OwnerProfileService {
       // Use the provided actorId, or default to SYSTEM if it's an automated transition
       const actualActor = actorId || 'SYSTEM';
 
-      if (restrictedStates.includes(toState)) {
+      if ((restrictedStates as string[]).includes(toState)) {
         if (!reason) throw new BadRequestException(`Transition to ${toState} requires a reason.`);
         
         await this.auditService.log(tx, {

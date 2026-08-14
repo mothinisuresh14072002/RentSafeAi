@@ -318,7 +318,7 @@ model ViewingRequest {
   listing               Listing             @relation(fields: [listingId], references: [id])
   
   schedule              DateTime
-  status                ViewingStatus       @default(PENDING)
+  status                ViewingStatus       @default(PROPOSED)
   tenantConfirmedAt     DateTime?
   ownerConfirmedAt      DateTime?
   disagreementState     String?
@@ -430,6 +430,8 @@ model RiskSignal {
   id                    String              @id @default(uuid())
   ruleCode              String
   severity              SignalSeverity
+  entityType            String
+  entityId              String
   evidenceJson          Json
   status                SignalStatus        @default(ACTIVE)
   reviewerResolution    String?
@@ -605,6 +607,9 @@ enum ReviewState {
   PENDING
   APPROVED
   REJECTED
+  CHANGES_REQUESTED
+  SUSPENDED
+  EXPIRED
 }
 
 enum DocumentType {
@@ -620,14 +625,20 @@ enum ContactStatus {
 }
 
 enum ViewingStatus {
-  PENDING
-  CONFIRMED
+  PROPOSED
+  ACCEPTED
+  RESCHEDULED
   CANCELLED
+  COMPLETED
+  DISPUTED
 }
 
 enum AgreementStatus {
   DRAFT
+  UPLOADED
   SIGNED
+  REJECTED
+  EXPIRED
 }
 
 enum PaymentStatus {

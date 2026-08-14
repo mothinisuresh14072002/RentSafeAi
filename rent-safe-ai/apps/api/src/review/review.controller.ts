@@ -15,7 +15,7 @@ export class ReviewController {
 
   @Post('property/:propertyId/submit')
   @Roles('OWNER')
-  async submitForReview(@Request() req, @Param('propertyId') propertyId: string) {
+  async submitForReview(@Request() req: any, @Param('propertyId') propertyId: string) {
     return this.reviewService.submit(propertyId, req.user.userId);
   }
 
@@ -23,7 +23,7 @@ export class ReviewController {
   @Roles('REVIEWER', 'ADMIN')
   @UseGuards(AuditReasonGuard)
   async decide(
-    @Request() req,
+    @Request() req: any,
     @Param('caseId') caseId: string,
     @Body() dto: ReviewActionDto,
     @Headers('x-audit-reason') reason: string,
@@ -46,7 +46,7 @@ export class ReviewController {
   @Roles('REVIEWER', 'ADMIN')
   @UseGuards(AuditReasonGuard)
   async overrideCheck(
-    @Request() req,
+    @Request() req: any,
     @Param('propertyId') propertyId: string,
     @Param('checkType') checkType: string,
     @Headers('x-audit-reason') reason: string,

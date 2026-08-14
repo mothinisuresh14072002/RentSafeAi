@@ -24,12 +24,12 @@ export class OwnerProfileController {
   constructor(private readonly ownerProfileService: OwnerProfileService) {}
 
   @Get('checklist')
-  async getChecklist(@Request() req) {
+  async getChecklist(@Request() req: any) {
     return this.ownerProfileService.getChecklist(req.user.userId);
   }
 
   @Put('profile')
-  async upsertProfile(@Request() req, @Body() dto: UpdateProfileDto) {
+  async upsertProfile(@Request() req: any, @Body() dto: UpdateProfileDto) {
     return this.ownerProfileService.upsertProfile(req.user.userId, dto);
   }
 }

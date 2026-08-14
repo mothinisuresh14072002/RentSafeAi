@@ -9,14 +9,14 @@ export class PrivacyController {
 
   @Post('export')
   @HttpCode(HttpStatus.ACCEPTED)
-  async requestExport(@Request() req) {
+  async requestExport(@Request() req: any) {
     await this.privacyService.requestDataExport(req.user.userId);
     return { success: true, message: 'Export request submitted' };
   }
 
   @Post('delete')
   @HttpCode(HttpStatus.ACCEPTED)
-  async requestDeletion(@Request() req) {
+  async requestDeletion(@Request() req: any) {
     await this.privacyService.requestDataDeletion(req.user.userId);
     return { success: true, message: 'Deletion request submitted' };
   }

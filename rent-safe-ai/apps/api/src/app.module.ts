@@ -20,6 +20,10 @@ import { FraudModule } from './fraud/fraud.module';
 import { ReviewModule } from './review/review.module';
 import { ListingModule } from './listing/listing.module';
 import { SearchModule } from './search/search.module';
+import { ContactModule } from './contact/contact.module';
+import { ViewingModule } from './viewing/viewing.module';
+import { AgreementModule } from './agreement/agreement.module';
+import { RiskModule } from './risk/risk.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -54,6 +58,10 @@ import { BullModule } from '@nestjs/bullmq';
     ReviewModule,
     ListingModule,
     SearchModule,
+    ContactModule,
+    ViewingModule,
+    AgreementModule,
+    RiskModule,
   ],
   controllers: [AppController],
   providers: [

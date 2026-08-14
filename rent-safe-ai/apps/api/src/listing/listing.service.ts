@@ -116,16 +116,18 @@ export class ListingService {
     return this.prisma.$transaction(async (tx) => {
       const listing = await tx.listing.findUnique({
         where: { id: listingId },
-        include: { property: { include: { reviewCases: true } } },
+        include: { property: true },
       });
 
       if (!listing || listing.property.ownerId !== ownerId) {
         throw new NotFoundException('Listing not found or unauthorized');
       }
 
-      // Check if property is APPROVED
-      const propertyReview = listing.property.reviewCases.find(rc => rc.targetType === 'PROPERTY');
-      if (!propertyReview || propertyReview.status !== ReviewState.APPROVED) {
+      // Check if property is APPROVED via ReviewCase lookup
+      const propertyReview = await tx.reviewCase.findFirst({
+        where: { targetType: 'PROPERTY', targetId: listing.propertyId },
+      });
+      if (!propertyReview || (propertyReview.status as any) !== 'APPROVED') {
         throw new BadRequestException('Parent property must be approved before submitting a listing for review.');
       }
 
@@ -153,13 +155,15 @@ export class ListingService {
     return this.prisma.$transaction(async (tx) => {
       const listing = await tx.listing.findUnique({
         where: { id: listingId },
-        include: { property: { include: { reviewCases: true } } },
+        include: { property: true },
       });
 
       if (!listing) throw new NotFoundException('Listing not found');
 
-      const propertyReview = listing.property.reviewCases.find(rc => rc.targetType === 'PROPERTY');
-      if (!propertyReview || propertyReview.status !== ReviewState.APPROVED) {
+      const propertyReview = await tx.reviewCase.findFirst({
+        where: { targetType: 'PROPERTY', targetId: listing.propertyId },
+      });
+      if (!propertyReview || (propertyReview.status as any) !== 'APPROVED') {
         throw new BadRequestException('Parent property must be approved before publishing.');
       }
 

@@ -35,7 +35,7 @@ export class StorageController {
 
   @Post('upload-request')
   @Roles('OWNER')
-  async requestUploadUrl(@Request() req, @Body() dto: UploadRequestDto) {
+  async requestUploadUrl(@Request() req: any, @Body() dto: UploadRequestDto) {
     await this.policies.canAccessPropertyEvidence(req.user.userId, dto.propertyId);
 
     const ext = dto.extension.toLowerCase().replace('.', '');
@@ -60,7 +60,7 @@ export class StorageController {
 
   @Post('finalize')
   @Roles('OWNER')
-  async finalizeUpload(@Request() req, @Body() dto: UploadFinalizeDto) {
+  async finalizeUpload(@Request() req: any, @Body() dto: UploadFinalizeDto) {
     await this.policies.canAccessPropertyEvidence(req.user.userId, dto.propertyId);
 
     // In a real app, we would ideally verify the object exists and the checksum matches via MinIO HEAD request.
@@ -132,7 +132,7 @@ export class StorageController {
 
   @Get('media/:id')
   @Roles('OWNER', 'REVIEWER')
-  async getMediaUrl(@Request() req, @Param('id') id: string) {
+  async getMediaUrl(@Request() req: any, @Param('id') id: string) {
     const doc = await this.prisma.propertyDocument.findUnique({ where: { id }, include: { property: true } });
     if (doc) {
       if (req.user.roles.includes('OWNER')) {
