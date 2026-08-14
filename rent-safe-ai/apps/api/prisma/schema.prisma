@@ -1,0 +1,564 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// USERS & IDENTITY
+// -----------------------------------------------------------------------------
+
+model User {
+  id                    String              @id @default(uuid())
+  role                  Role                @default(TENANT)
+  email                 String              @unique
+  hashedPassword        String
+  phone                 String?             @unique
+  isActive              Boolean             @default(true)
+  isEmailVerified       Boolean             @default(false)
+  isPhoneVerified       Boolean             @default(false)
+  locale                String              @default("en-IN")
+  
+  deviceFingerprints    Json?               @default("[]")
+  flaggedForFraud       Boolean             @default(false)
+  
+  profile               UserProfile?
+  ownerKycCases         OwnerKycCase[]
+  bankAccounts          OwnerBankAccount[]
+  properties            Property[]          @relation("PropertyOwner")
+  contactRequests       ContactRequest[]
+  viewingRequests       ViewingRequest[]
+  fraudReports          FraudReport[]       @relation("FraudReporter")
+  consents              Consent[]
+  notifications         Notification[]
+  notificationPrefs     NotificationPreference?
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?           // Soft delete
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                    String              @id @default(uuid())
+  userId                String              @unique
+  user                  User                @relation(fields: [userId], references: [id])
+  displayName           String?
+  firstName             String?
+  lastName              String?
+  avatarUrl             String?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("user_profiles")
+}
+
+model OwnerKycCase {
+  id                    String              @id @default(uuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id])
+  provider              String
+  providerReference     String              @unique
+  status                VerificationStatus  @default(PENDING)
+  maskedResult          Json?               // Store safe attributes like masked DOB, Name
+  reviewedAt            DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("owner_kyc_cases")
+}
+
+model OwnerBankAccount {
+  id                    String              @id @default(uuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id])
+  encryptedToken        String              // Envelope encrypted
+  maskedAccount         String              // e.g., ****1234
+  beneficiaryResult     String?             // Name returned by verification
+  status                VerificationStatus  @default(PENDING)
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("owner_bank_accounts")
+}
+
+// -----------------------------------------------------------------------------
+// PROPERTIES & LISTINGS
+// -----------------------------------------------------------------------------
+
+model Property {
+  id                    String              @id @default(uuid())
+  ownerId               String
+  owner                 User                @relation("PropertyOwner", fields: [ownerId], references: [id])
+  
+  structuredAddress     Json
+  chennaiLocality       String
+  latitude              Float?
+  longitude             Float?
+  normalizedAddressHash String              @unique // Partial unique constraint will be added in SQL
+  status                PropertyStatus      @default(ACTIVE)
+
+  identifiers           PropertyIdentifier[]
+  documents             PropertyDocument[]
+  verifications         PropertyVerification[]
+  listings              Listing[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+
+  @@map("properties")
+}
+
+model PropertyIdentifier {
+  id                    String              @id @default(uuid())
+  propertyId            String
+  property              Property            @relation(fields: [propertyId], references: [id])
+  identifierType        String              // e.g., 'SURVEY_NUMBER'
+  encryptedValue        String              // Envelope encrypted
+  normalizedHash        String              // For duplicate checking
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("property_identifiers")
+}
+
+model PropertyDocument {
+  id                    String              @id @default(uuid())
+  propertyId            String
+  property              Property            @relation(fields: [propertyId], references: [id])
+  documentType          DocumentType
+  objectKey             String              // Private S3 key
+  checksum              String
+  extractedFields       Json?
+  reviewState           ReviewState         @default(PENDING)
+  expiryDate            DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("property_documents")
+}
+
+model PropertyVerification {
+  id                    String              @id @default(uuid())
+  propertyId            String
+  property              Property            @relation(fields: [propertyId], references: [id])
+  checkType             String              // e.g., 'PRESENCE_PROOF', 'OWNERSHIP'
+  status                VerificationStatus  @default(PENDING)
+  evidenceReference     String?
+  reviewerId            String?             // Admin UUID
+  completedAt           DateTime?
+  expiryDate            DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("property_verifications")
+}
+
+model Listing {
+  id                    String              @id @default(uuid())
+  propertyId            String
+  property              Property            @relation(fields: [propertyId], references: [id])
+  version               Int                 @default(1) // Optimistic concurrency
+  
+  rentAmount            Decimal
+  depositAmount         Decimal
+  furnishing            String
+  availability          DateTime
+  description           String?
+  lifecycleState        PublishStatus       @default(DRAFT)
+  publishedVersion      Int?                // Links to ListingVersion
+  
+  media                 ListingMedia[]
+  versions              ListingVersion[]
+  contactRequests       ContactRequest[]
+  viewingRequests       ViewingRequest[]
+  agreements            Agreement[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+
+  @@map("listings")
+}
+
+model ListingMedia {
+  id                    String              @id @default(uuid())
+  listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  privateOriginalKey    String
+  publicDerivativeKey   String
+  sha256Hash            String
+  pHash                 String
+  challengeMetadata     Json?               // Unstripped EXIF/Timestamp
+  reviewState           ReviewState         @default(PENDING)
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("listing_media")
+}
+
+model ListingVersion {
+  id                    String              @id @default(uuid())
+  listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  versionNumber         Int
+  snapshotData          Json                // Immutable copy of critical data
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("listing_versions")
+}
+
+// -----------------------------------------------------------------------------
+// TENANT INTERACTIONS
+// -----------------------------------------------------------------------------
+
+model ContactRequest {
+  id                    String              @id @default(uuid())
+  tenantId              String
+  tenant                User                @relation(fields: [tenantId], references: [id])
+  listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  
+  status                ContactStatus       @default(PENDING)
+  consentTimestamp      DateTime?
+  disclosureTimestamp   DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("contact_requests")
+}
+
+model ViewingRequest {
+  id                    String              @id @default(uuid())
+  tenantId              String
+  tenant                User                @relation(fields: [tenantId], references: [id])
+  listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  
+  schedule              DateTime
+  status                ViewingStatus       @default(PENDING)
+  tenantConfirmedAt     DateTime?
+  ownerConfirmedAt      DateTime?
+  disagreementState     String?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("viewing_requests")
+}
+
+model Agreement {
+  id                    String              @id @default(uuid())
+  listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  tenantId              String
+  ownerId               String
+  documentKey           String
+  status                AgreementStatus     @default(DRAFT)
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("agreements")
+}
+
+// -----------------------------------------------------------------------------
+// PAYMENTS (SANDBOX)
+// -----------------------------------------------------------------------------
+
+model PaymentOrder {
+  id                    String              @id @default(uuid())
+  tenantId              String
+  listingId             String
+  amount                Decimal
+  currency              String              @default("INR")
+  status                PaymentStatus       @default(CREATED)
+  
+  transactions          PaymentTransaction[]
+  webhookEvents         PaymentWebhookEvent[]
+  refunds               Refund[]
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("payment_orders")
+}
+
+model PaymentTransaction {
+  id                    String              @id @default(uuid())
+  orderId               String
+  order                 PaymentOrder        @relation(fields: [orderId], references: [id])
+  providerReference     String
+  status                String
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("payment_transactions")
+}
+
+model PaymentWebhookEvent {
+  id                    String              @id @default(uuid())
+  orderId               String
+  order                 PaymentOrder        @relation(fields: [orderId], references: [id])
+  eventId               String              @unique // Idempotency
+  eventType             String
+  payload               Json
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("payment_webhook_events")
+}
+
+model Refund {
+  id                    String              @id @default(uuid())
+  orderId               String
+  order                 PaymentOrder        @relation(fields: [orderId], references: [id])
+  amount                Decimal
+  status                RefundStatus        @default(PENDING)
+  providerReference     String?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("refunds")
+}
+
+// -----------------------------------------------------------------------------
+// FRAUD, RISK & AUDIT
+// -----------------------------------------------------------------------------
+
+model FraudReport {
+  id                    String              @id @default(uuid())
+  reporterId            String
+  reporter              User                @relation("FraudReporter", fields: [reporterId], references: [id])
+  subjectType           String              // 'LISTING', 'USER', 'MESSAGE'
+  subjectId             String
+  category              String
+  narrative             String
+  evidence              Json?
+  status                ReportStatus        @default(OPEN)
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("fraud_reports")
+}
+
+model RiskSignal {
+  id                    String              @id @default(uuid())
+  ruleCode              String
+  severity              SignalSeverity
+  evidenceJson          Json
+  status                SignalStatus        @default(ACTIVE)
+  reviewerResolution    String?
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("risk_signals")
+}
+
+model ReviewCase {
+  id                    String              @id @default(uuid())
+  targetType            String
+  targetId              String
+  status                ReviewState         @default(PENDING)
+  
+  actions               ReviewAction[]
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("review_cases")
+}
+
+model ReviewAction {
+  id                    String              @id @default(uuid())
+  caseId                String
+  case                  ReviewCase          @relation(fields: [caseId], references: [id])
+  reviewerId            String
+  actionTaken           String
+  notes                 String?
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("review_actions")
+}
+
+model Consent {
+  id                    String              @id @default(uuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id])
+  policyVersion         String
+  purpose               String
+  withdrawalTimestamp   DateTime?
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("consents")
+}
+
+model AuditLog {
+  id                    String              @id @default(uuid())
+  actorId               String
+  action                String
+  entityType            String
+  entityId              String
+  beforeHash            String?
+  afterHash             String?
+  requestId             String?
+  ipDeviceReference     String?
+  
+  createdAt             DateTime            @default(now()) // Append only
+
+  @@map("audit_logs")
+}
+
+model OutboxEvent {
+  id                    String              @id @default(uuid())
+  eventType             String
+  payload               Json
+  processedAt           DateTime?
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("outbox_events")
+}
+
+model Notification {
+  id                    String              @id @default(uuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id])
+  title                 String
+  body                  String
+  isRead                Boolean             @default(false)
+  
+  createdAt             DateTime            @default(now())
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                    String              @id @default(uuid())
+  userId                String              @unique
+  user                  User                @relation(fields: [userId], references: [id])
+  emailEnabled          Boolean             @default(true)
+  smsEnabled            Boolean             @default(true)
+  pushEnabled           Boolean             @default(true)
+  
+  updatedAt             DateTime            @updatedAt
+
+  @@map("notification_preferences")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum Role {
+  TENANT
+  LANDLORD
+  ADMIN
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PublishStatus {
+  DRAFT
+  OWNER_KYC_PENDING
+  PROPERTY_EVIDENCE_PENDING
+  UNDER_REVIEW
+  VERIFIED
+  PUBLISHED
+  CHANGES_REQUESTED
+  REJECTED
+  SUSPENDED
+  EXPIRED
+  RENTED
+  ARCHIVED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum ReviewState {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  TITLE_EXTRACT
+  PROPERTY_TAX
+  OTHER_EVIDENCE
+}
+
+enum ContactStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ViewingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum AgreementStatus {
+  DRAFT
+  SIGNED
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUND_PENDING
+  REFUNDED
+  DISPUTED
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ReportStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum SignalSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SignalStatus {
+  ACTIVE
+  RESOLVED
+}

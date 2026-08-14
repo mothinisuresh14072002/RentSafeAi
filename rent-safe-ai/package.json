@@ -1,0 +1,7 @@
+{
+  "name": "rent-safe-ai",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ]
+}
