@@ -32,6 +32,8 @@ model User {
   contactRequests       ContactRequest[]
   viewingRequests       ViewingRequest[]
   fraudReports          FraudReport[]       @relation("FraudReporter")
+  assignedFraudReports  FraudReport[]       @relation("FraudAssignee")
+  paymentHolds          PaymentHold[]       @relation("PaymentHoldOwner")
   consents              Consent[]
   notifications         Notification[]
   notificationPrefs     NotificationPreference?
@@ -108,6 +110,7 @@ model OwnerKycCase {
   normalizedName        String?
   reviewerDecision      String?
   reviewedAt            DateTime?
+  expiryDate            DateTime?
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -251,6 +254,8 @@ model Listing {
   contactRequests       ContactRequest[]
   viewingRequests       ViewingRequest[]
   agreements            Agreement[]
+  paymentOrders         PaymentOrder[]
+  paymentExceptions     PaymentEligibilityException[]
 
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -337,6 +342,7 @@ model Agreement {
   ownerId               String
   documentKey           String
   status                AgreementStatus     @default(DRAFT)
+  paymentOrders         PaymentOrder[]
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -352,13 +358,20 @@ model PaymentOrder {
   id                    String              @id @default(uuid())
   tenantId              String
   listingId             String
+  listing               Listing             @relation(fields: [listingId], references: [id])
+  agreementId           String
+  agreement             Agreement           @relation(fields: [agreementId], references: [id])
   amount                Int                 // Stored in paise
   currency              String              @default("INR")
   status                PaymentStatus       @default(CREATED)
+  idempotencyKey        String              @unique
+  providerOrderId       String?             @unique
+  eligibilitySnapshot   Json?
   
   transactions          PaymentTransaction[]
   webhookEvents         PaymentWebhookEvent[]
   refunds               Refund[]
+  paymentHolds          PaymentHold[]
 
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -372,6 +385,8 @@ model PaymentTransaction {
   order                 PaymentOrder        @relation(fields: [orderId], references: [id])
   providerReference     String
   status                String
+  eventType             String
+  metadata              Json?
   
   createdAt             DateTime            @default(now())
 
@@ -418,12 +433,53 @@ model FraudReport {
   category              String
   narrative             String
   evidence              Json?
+  severity              SignalSeverity      @default(MEDIUM)
   status                ReportStatus        @default(OPEN)
+  assignedToId          String?
+  assignedTo            User?               @relation("FraudAssignee", fields: [assignedToId], references: [id])
+  resolution            String?
+  resolvedAt            DateTime?
+  ownerNotifiedAt       DateTime?
+  paymentHolds          PaymentHold[]
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 
   @@map("fraud_reports")
+}
+
+model PaymentEligibilityException {
+  id          String   @id @default(uuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+  tenantId    String
+  approvedBy  String
+  reason      String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([listingId, tenantId, expiresAt])
+  @@map("payment_eligibility_exceptions")
+}
+
+model PaymentHold {
+  id             String       @id @default(uuid())
+  ownerId        String
+  owner          User         @relation("PaymentHoldOwner", fields: [ownerId], references: [id])
+  reportId       String
+  report         FraudReport  @relation(fields: [reportId], references: [id])
+  paymentOrderId String?
+  paymentOrder   PaymentOrder? @relation(fields: [paymentOrderId], references: [id])
+  reason         String
+  status         PaymentHoldStatus @default(PENDING_REVIEW)
+  releasedAt     DateTime?
+  releasedById   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([ownerId, status])
+  @@index([reportId])
+  @@map("payment_holds")
 }
 
 model RiskSignal {
@@ -662,6 +718,12 @@ enum ReportStatus {
   INVESTIGATING
   RESOLVED
   DISMISSED
+}
+
+enum PaymentHoldStatus {
+  PENDING_REVIEW
+  RELEASED
+  CONVERTED_TO_BLOCK
 }
 
 enum SignalSeverity {

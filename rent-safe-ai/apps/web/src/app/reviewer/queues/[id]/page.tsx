@@ -13,7 +13,7 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [reason, setReason] = useState('');
-  const [decision, setDecision] = useState<'APPROVE' | 'REJECT' | 'REQUEST_CHANGES' | 'SUSPEND' | ''>('');
+  const [decision, setDecision] = useState<'INVESTIGATE' | 'RESOLVE' | 'DISMISS' | 'RELEASE_HOLD' | ''>('');
 
   const submitDecision = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,12 +22,9 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
     setError('');
 
     try {
-      await apiClient(`/review/cases/${params.id}/actions`, {
+      await apiClient(`/fraud-reports/${params.id}/actions`, {
         method: 'POST',
-        headers: {
-          'x-audit-reason': reason
-        },
-        body: JSON.stringify({ action: decision })
+        body: JSON.stringify({ action: decision, resolution: reason })
       });
       router.push('/reviewer/dashboard');
     } catch (e: any) {
@@ -48,7 +45,7 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-medium text-slate-900">Verification Checklist</h2>
+              <h2 className="text-lg font-medium text-slate-900">Report review</h2>
             </CardHeader>
             <CardBody>
               <ul className="space-y-3">
@@ -56,19 +53,19 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
                   <span className="h-5 w-5 rounded-full bg-green-100 flex items-center justify-center">
                     <span className="h-2.5 w-2.5 rounded-full bg-green-600"></span>
                   </span>
-                  <span className="text-slate-700">Identity / KYC (Verified)</span>
+                  <span className="text-slate-700">Reporter identity is hidden from the affected owner</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <span className="h-5 w-5 rounded-full bg-yellow-100 flex items-center justify-center">
                     <span className="h-2.5 w-2.5 rounded-full bg-yellow-600"></span>
                   </span>
-                  <span className="text-slate-700">Property Evidence (Pending Review)</span>
+                  <span className="text-slate-700">Evidence is available through private, expiring links</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <span className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center">
                     <span className="h-2.5 w-2.5 rounded-full bg-slate-600"></span>
                   </span>
-                  <span className="text-slate-700">Duplicate Check (Scanning)</span>
+                  <span className="text-slate-700">Payment hold is released only after review</span>
                 </li>
               </ul>
             </CardBody>
@@ -105,10 +102,10 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
                     required
                   >
                     <option value="" disabled>Select a decision...</option>
-                    <option value="APPROVE">Approve</option>
-                    <option value="REQUEST_CHANGES">Request Changes</option>
-                    <option value="REJECT">Reject (Fraud/Policy)</option>
-                    <option value="SUSPEND">Suspend Account</option>
+                    <option value="INVESTIGATE">Start investigation</option>
+                    <option value="RESOLVE">Resolve as valid</option>
+                    <option value="DISMISS">Dismiss report</option>
+                    <option value="RELEASE_HOLD">Release payment hold</option>
                   </select>
                 </div>
 

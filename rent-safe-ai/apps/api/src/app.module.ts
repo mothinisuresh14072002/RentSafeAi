@@ -24,6 +24,9 @@ import { ContactModule } from './contact/contact.module';
 import { ViewingModule } from './viewing/viewing.module';
 import { AgreementModule } from './agreement/agreement.module';
 import { RiskModule } from './risk/risk.module';
+import { FraudReportsModule } from './fraud-reports/fraud-reports.module';
+import { SafetyModule } from './safety/safety.module';
+import { PaymentModule } from './payment/payment.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -62,6 +65,9 @@ import { BullModule } from '@nestjs/bullmq';
     ViewingModule,
     AgreementModule,
     RiskModule,
+    FraudReportsModule,
+    SafetyModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

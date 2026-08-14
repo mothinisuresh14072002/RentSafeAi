@@ -16,8 +16,8 @@ export default function ReviewDashboardPage() {
       try {
         // Fetch pending cases from backend review service
         // Since we didn't build a specific queue endpoint in Task 15, we'll mock the fetch pattern
-        const data = await apiClient('/review/cases').catch(() => []);
-        setQueues(data);
+        const data = await apiClient('/fraud-reports/queue').catch(() => []);
+        setQueues(Array.isArray(data) ? data : data.data || []);
       } catch (e) {
         // Ignore
       } finally {
@@ -35,7 +35,7 @@ export default function ReviewDashboardPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-medium text-slate-900">Unassigned & Pending Cases</h2>
+          <h2 className="text-lg font-medium text-slate-900">Tenant safety reports</h2>
         </CardHeader>
         <CardBody>
           {loading ? (
@@ -49,8 +49,8 @@ export default function ReviewDashboardPage() {
               {queues.map(c => (
                 <div key={c.id} className="flex justify-between items-center p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white">
                   <div>
-                    <h3 className="font-medium text-slate-900">{c.targetType}</h3>
-                    <p className="text-sm text-slate-500">Target ID: {c.targetId}</p>
+                    <h3 className="font-medium text-slate-900">{c.category} · {c.severity}</h3>
+                    <p className="text-sm text-slate-500">Subject: {c.subjectType} {c.subjectId}</p>
                   </div>
                   <div className="flex items-center space-x-4">
                     <Badge variant={c.status === 'PENDING' ? 'warning' : 'info'}>{c.status}</Badge>
