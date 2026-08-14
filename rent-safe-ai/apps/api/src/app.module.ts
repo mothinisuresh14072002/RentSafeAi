@@ -28,6 +28,7 @@ import { FraudReportsModule } from './fraud-reports/fraud-reports.module';
 import { SafetyModule } from './safety/safety.module';
 import { PaymentModule } from './payment/payment.module';
 import { BullModule } from '@nestjs/bullmq';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -41,10 +42,12 @@ import { BullModule } from '@nestjs/bullmq';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     LoggerModule,
     PrismaModule,
     AuditModule,
@@ -68,6 +71,7 @@ import { BullModule } from '@nestjs/bullmq';
     FraudReportsModule,
     SafetyModule,
     PaymentModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

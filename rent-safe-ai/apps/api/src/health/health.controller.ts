@@ -1,5 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheckService, HealthCheck, PrismaHealthIndicator } from '@nestjs/terminus';
+import {
+  HealthCheckService,
+  HealthCheck,
+  PrismaHealthIndicator,
+} from '@nestjs/terminus';
 import { PrismaService } from '../common/prisma/prisma.service';
 import Redis from 'ioredis';
 import * as Minio from 'minio';
@@ -14,8 +18,10 @@ export class HealthController {
     private db: PrismaHealthIndicator,
     private prisma: PrismaService,
   ) {
-    this.redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-    
+    this.redisClient = new Redis(
+      process.env.REDIS_URL || 'redis://localhost:6379',
+    );
+
     const endpoint = process.env.MINIO_ENDPOINT || 'localhost';
     const port = parseInt(process.env.MINIO_PORT || '9000', 10);
     this.minioClient = new Minio.Client({
@@ -53,7 +59,7 @@ export class HealthController {
         } catch (e) {
           throw new Error('MinIO is down');
         }
-      }
+      },
     ]);
   }
 }

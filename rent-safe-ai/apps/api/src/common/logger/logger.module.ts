@@ -20,7 +20,11 @@ import { v4 as uuidv4 } from 'uuid';
               }
             : undefined,
         redact: {
-          paths: ['req.headers.authorization', 'req.headers.cookie', 'body.password'],
+          paths: [
+            'req.headers.authorization',
+            'req.headers.cookie',
+            'body.password',
+          ],
           censor: '***',
         },
       },

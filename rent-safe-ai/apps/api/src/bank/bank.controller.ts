@@ -1,8 +1,20 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param } from '@nestjs/common';
-import { BankService, AddBankAccountDto } from './bank.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Param,
+} from '@nestjs/common';
+import { BankService } from './bank.service';
+import type { AddBankAccountDto } from './bank.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
-import { AuditReasonGuard, AuditReasonRequired } from '../common/audit/audit-reason.guard';
+import {
+  AuditReasonGuard,
+  AuditReasonRequired,
+} from '../common/audit/audit-reason.guard';
 
 @Controller('bank')
 @UseGuards(JwtAuthGuard)
@@ -34,7 +46,16 @@ export class ReviewerBankController {
   @Post(':id/decision')
   @UseGuards(AuditReasonGuard)
   @AuditReasonRequired()
-  async submitDecision(@Param('id') id: string, @Request() req, @Body() body: { decision: 'APPROVED' | 'REJECTED' }) {
-    return this.bankService.submitReviewerDecision(id, req.user.userId, body.decision, req.auditReason);
+  async submitDecision(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() body: { decision: 'APPROVED' | 'REJECTED' },
+  ) {
+    return this.bankService.submitReviewerDecision(
+      id,
+      req.user.userId,
+      body.decision,
+      req.auditReason,
+    );
   }
 }

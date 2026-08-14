@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { GeoUtil } from '../common/utils/geo.util';
 import { Policies } from '../auth/policies';
@@ -6,8 +10,14 @@ import { AuditService } from '../common/audit/audit.service';
 import { VerificationStatus } from '@prisma/client';
 
 const PHRASES = [
-  'BLUE SKY', 'RED APPLE', 'GREEN LEAF', 'YELLOW SUN', 'WHITE CLOUD',
-  'RAISE RIGHT HAND', 'TOUCH NOSE', 'HOLD UP TWO FINGERS'
+  'BLUE SKY',
+  'RED APPLE',
+  'GREEN LEAF',
+  'YELLOW SUN',
+  'WHITE CLOUD',
+  'RAISE RIGHT HAND',
+  'TOUCH NOSE',
+  'HOLD UP TWO FINGERS',
 ];
 
 export interface SubmitChallengeDto {
@@ -48,7 +58,12 @@ export class PresenceService {
     });
   }
 
-  async submitChallenge(userId: string, propertyId: string, challengeId: string, dto: SubmitChallengeDto) {
+  async submitChallenge(
+    userId: string,
+    propertyId: string,
+    challengeId: string,
+    dto: SubmitChallengeDto,
+  ) {
     await this.policies.canAccessPropertyEvidence(userId, propertyId);
 
     return this.prisma.$transaction(async (tx) => {
@@ -80,7 +95,12 @@ export class PresenceService {
         throw new BadRequestException('Property coordinates are not available');
       }
 
-      const distance = GeoUtil.calculateDistance(propLat, propLng, dto.latitude, dto.longitude);
+      const distance = GeoUtil.calculateDistance(
+        propLat,
+        propLng,
+        dto.latitude,
+        dto.longitude,
+      );
 
       if (distance > this.MAX_DISTANCE_METERS) {
         await tx.presenceChallenge.update({
@@ -91,7 +111,9 @@ export class PresenceService {
             submittedLng: dto.longitude,
           },
         });
-        throw new BadRequestException(`Geographic bounds exceeded. Distance: ${Math.round(distance)}m (Max: ${this.MAX_DISTANCE_METERS}m)`);
+        throw new BadRequestException(
+          `Geographic bounds exceeded. Distance: ${Math.round(distance)}m (Max: ${this.MAX_DISTANCE_METERS}m)`,
+        );
       }
 
       // Success - create PropertyVerification entry

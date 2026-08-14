@@ -63,35 +63,50 @@ describe('PresenceService', () => {
     };
 
     it('throws if distance is greater than 200m', async () => {
-      jest.spyOn(prisma.presenceChallenge, 'findUnique').mockResolvedValue(validChallenge as any);
-      
-      // Submit coordinates far away (e.g., 14.0, 80.0)
-      await expect(service.submitChallenge('u1', 'p1', 'c1', {
-        latitude: 14.0,
-        longitude: 80.0,
-        mediaKey: 'key',
-      })).rejects.toThrow(/Geographic bounds exceeded/);
+      jest
+        .spyOn(prisma.presenceChallenge, 'findUnique')
+        .mockResolvedValue(validChallenge as any);
 
-      expect(prisma.presenceChallenge.update).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ status: VerificationStatus.REJECTED }),
-      }));
+      // Submit coordinates far away (e.g., 14.0, 80.0)
+      await expect(
+        service.submitChallenge('u1', 'p1', 'c1', {
+          latitude: 14.0,
+          longitude: 80.0,
+          mediaKey: 'key',
+        }),
+      ).rejects.toThrow(/Geographic bounds exceeded/);
+
+      expect(prisma.presenceChallenge.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: VerificationStatus.REJECTED,
+          }),
+        }),
+      );
     });
 
     it('throws if challenge expired', async () => {
       jest.spyOn(prisma.presenceChallenge, 'findUnique').mockResolvedValue({
-        ...validChallenge, expiresAt: new Date(Date.now() - 100000)
+        ...validChallenge,
+        expiresAt: new Date(Date.now() - 100000),
       } as any);
 
-      await expect(service.submitChallenge('u1', 'p1', 'c1', {
-        latitude: 13.0,
-        longitude: 80.0,
-        mediaKey: 'key',
-      })).rejects.toThrow(/expired/);
+      await expect(
+        service.submitChallenge('u1', 'p1', 'c1', {
+          latitude: 13.0,
+          longitude: 80.0,
+          mediaKey: 'key',
+        }),
+      ).rejects.toThrow(/expired/);
     });
 
     it('creates property verification on successful distance check', async () => {
-      jest.spyOn(prisma.presenceChallenge, 'findUnique').mockResolvedValue(validChallenge as any);
-      const verifyCreateSpy = jest.spyOn(prisma.propertyVerification, 'create').mockResolvedValue({} as any);
+      jest
+        .spyOn(prisma.presenceChallenge, 'findUnique')
+        .mockResolvedValue(validChallenge as any);
+      const verifyCreateSpy = jest
+        .spyOn(prisma.propertyVerification, 'create')
+        .mockResolvedValue({} as any);
 
       await service.submitChallenge('u1', 'p1', 'c1', {
         latitude: 13.0,
@@ -99,16 +114,22 @@ describe('PresenceService', () => {
         mediaKey: 'my-media-key',
       });
 
-      expect(prisma.presenceChallenge.update).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ status: VerificationStatus.VERIFIED }),
-      }));
-      expect(verifyCreateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          checkType: 'PRESENCE_PROOF',
-          evidenceReference: 'my-media-key',
-          status: VerificationStatus.PENDING,
+      expect(prisma.presenceChallenge.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: VerificationStatus.VERIFIED,
+          }),
         }),
-      }));
+      );
+      expect(verifyCreateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            checkType: 'PRESENCE_PROOF',
+            evidenceReference: 'my-media-key',
+            status: VerificationStatus.PENDING,
+          }),
+        }),
+      );
       expect(audit.log).toHaveBeenCalled();
     });
   });

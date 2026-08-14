@@ -65,7 +65,9 @@ describe('AuthService', () => {
 
   describe('requestOtp', () => {
     it('should throw error on invalid phone format', async () => {
-      await expect(service.requestOtp('invalid')).rejects.toThrow(BadRequestException);
+      await expect(service.requestOtp('invalid')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should enforce cooldown', async () => {
@@ -81,13 +83,17 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.requestOtp('+919999999999')).rejects.toThrow(BadRequestException);
+      await expect(service.requestOtp('+919999999999')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should generate and send OTP', async () => {
       jest.spyOn(prisma.otpAttempt, 'findFirst').mockResolvedValue(null);
-      const createSpy = jest.spyOn(prisma.otpAttempt, 'create').mockResolvedValue(null as any);
-      
+      const createSpy = jest
+        .spyOn(prisma.otpAttempt, 'create')
+        .mockResolvedValue(null as any);
+
       const res = await service.requestOtp('+919999999999');
       expect(res.success).toBe(true);
       expect(createSpy).toHaveBeenCalled();
@@ -98,7 +104,9 @@ describe('AuthService', () => {
   describe('verifyOtp', () => {
     it('should fail if no active OTP found', async () => {
       jest.spyOn(prisma.otpAttempt, 'findFirst').mockResolvedValue(null);
-      await expect(service.verifyOtp('+919999999999', '123456')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.verifyOtp('+919999999999', '123456'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should fail if expired', async () => {
@@ -113,7 +121,9 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      await expect(service.verifyOtp('+919999999999', '123456')).rejects.toThrow(/expired/);
+      await expect(
+        service.verifyOtp('+919999999999', '123456'),
+      ).rejects.toThrow(/expired/);
     });
 
     it('should fail if max attempts exceeded', async () => {
@@ -128,7 +138,9 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      await expect(service.verifyOtp('+919999999999', '123456')).rejects.toThrow(/Maximum attempts/);
+      await expect(
+        service.verifyOtp('+919999999999', '123456'),
+      ).rejects.toThrow(/Maximum attempts/);
     });
 
     it('should successfully verify a correct code', async () => {
@@ -145,20 +157,28 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      const updateSpy = jest.spyOn(prisma.otpAttempt, 'update').mockResolvedValue(null as any);
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({ id: 'u1', status: 'ACTIVE' } as any);
+      const updateSpy = jest
+        .spyOn(prisma.otpAttempt, 'update')
+        .mockResolvedValue(null as any);
+      jest
+        .spyOn(prisma.user, 'findUnique')
+        .mockResolvedValue({ id: 'u1', status: 'ACTIVE' } as any);
       jest.spyOn(prisma.session, 'create').mockResolvedValue(null as any);
-      
+
       const res = await service.verifyOtp('+919999999999', code);
       expect(res.accessToken).toBe('mock-jwt-token');
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({ data: { verified: true } }));
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { verified: true } }),
+      );
     });
   });
 
   describe('refreshToken', () => {
     it('should throw if session not found', async () => {
       jest.spyOn(prisma.session, 'findFirst').mockResolvedValue(null);
-      await expect(service.refreshToken('family:nonce')).rejects.toThrow(/Session not found/);
+      await expect(service.refreshToken('family:nonce')).rejects.toThrow(
+        /Session not found/,
+      );
     });
 
     it('should detect reuse and revoke family', async () => {
@@ -176,9 +196,13 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      const updateManySpy = jest.spyOn(prisma.session, 'updateMany').mockResolvedValue(null as any);
+      const updateManySpy = jest
+        .spyOn(prisma.session, 'updateMany')
+        .mockResolvedValue(null as any);
 
-      await expect(service.refreshToken('family:nonce')).rejects.toThrow(/Refresh token reuse/);
+      await expect(service.refreshToken('family:nonce')).rejects.toThrow(
+        /Refresh token reuse/,
+      );
       expect(updateManySpy).toHaveBeenCalledWith({
         where: { familyId: 'family' },
         data: { status: 'REVOKED' },
@@ -199,7 +223,9 @@ describe('AuthService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      const updateSpy = jest.spyOn(prisma.session, 'update').mockResolvedValue(null as any);
+      const updateSpy = jest
+        .spyOn(prisma.session, 'update')
+        .mockResolvedValue(null as any);
 
       const res = await service.refreshToken(`family:${nonce}`);
       expect(res.accessToken).toBe('mock-jwt-token');

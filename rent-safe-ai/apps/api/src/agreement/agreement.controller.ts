@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AgreementService } from './agreement.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -12,7 +20,12 @@ export class AgreementController {
     @Request() req: any,
     @Body() body: { listingId: string; tenantId: string; reason: string },
   ) {
-    return this.agreementService.createDraft(req.user.userId, body.listingId, body.tenantId, body.reason);
+    return this.agreementService.createDraft(
+      req.user.userId,
+      body.listingId,
+      body.tenantId,
+      body.reason,
+    );
   }
 
   @Post(':id/upload')
@@ -21,16 +34,29 @@ export class AgreementController {
     @Param('id') id: string,
     @Body() body: { documentKey: string; reason: string },
   ) {
-    return this.agreementService.recordUpload(req.user.userId, id, body.documentKey, body.reason);
+    return this.agreementService.recordUpload(
+      req.user.userId,
+      id,
+      body.documentKey,
+      body.reason,
+    );
   }
 
   @Post(':id/sign')
-  sign(@Request() req: any, @Param('id') id: string, @Body('reason') reason: string) {
+  sign(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
     return this.agreementService.sign(req.user.userId, id, reason);
   }
 
   @Post(':id/reject')
-  reject(@Request() req: any, @Param('id') id: string, @Body('reason') reason: string) {
+  reject(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+  ) {
     return this.agreementService.reject(req.user.userId, id, reason);
   }
 

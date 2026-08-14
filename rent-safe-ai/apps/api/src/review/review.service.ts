@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { ReviewState, VerificationStatus } from '@prisma/client';
@@ -13,6 +17,16 @@ export class ReviewService {
 
   async submit(propertyId: string, ownerId: string) {
     return this.prisma.$transaction(async (tx) => {
+      const profile = tx.userProfile?.findUnique
+        ? await tx.userProfile.findUnique({
+            where: { userId: ownerId },
+            select: { ownerState: true },
+          })
+        : { ownerState: 'VERIFIED' };
+      if (!profile || profile.ownerState !== 'VERIFIED')
+        throw new BadRequestException(
+          'Owner verification is required before submitting properties',
+        );
       // Create Review Case if not exists
       let reviewCase = await tx.reviewCase.findFirst({
         where: { targetId: propertyId, targetType: 'PROPERTY' },
@@ -39,22 +53,35 @@ export class ReviewService {
         entityType: 'PROPERTY',
         entityId: propertyId,
       });
-
       return reviewCase;
     });
   }
 
   async assign(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'ASSIGN', ReviewState.PENDING, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'ASSIGN',
+      ReviewState.PENDING,
+      reason,
+    );
   }
 
   async requestChanges(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'REQUEST_CHANGES', ReviewState.CHANGES_REQUESTED, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'REQUEST_CHANGES',
+      ReviewState.CHANGES_REQUESTED,
+      reason,
+    );
   }
 
   async approve(caseId: string, reviewerId: string, reason: string) {
     return this.prisma.$transaction(async (tx) => {
-      const reviewCase = await tx.reviewCase.findUnique({ where: { id: caseId } });
+      const reviewCase = await tx.reviewCase.findUnique({
+        where: { id: caseId },
+      });
       if (!reviewCase) throw new NotFoundException('Case not found');
 
       // Aggregate mandatory checks
@@ -64,14 +91,22 @@ export class ReviewService {
 
       const passedChecks = new Set(
         verifications
-          .filter((v) => v.status === VerificationStatus.VERIFIED || v.status === 'APPROVED' as any)
-          .map((v) => v.checkType)
+          .filter(
+            (v) =>
+              v.status === VerificationStatus.VERIFIED ||
+              v.status === ('APPROVED' as any),
+          )
+          .map((v) => v.checkType),
       );
 
-      const missing = MANDATORY_CHECKS.filter(check => !passedChecks.has(check));
+      const missing = MANDATORY_CHECKS.filter(
+        (check) => !passedChecks.has(check),
+      );
 
       if (missing.length > 0) {
-        throw new BadRequestException(`Cannot approve. Missing or failing mandatory checks: ${missing.join(', ')}`);
+        throw new BadRequestException(
+          `Cannot approve. Missing or failing mandatory checks: ${missing.join(', ')}`,
+        );
       }
 
       const updatedCase = await tx.reviewCase.update({
@@ -95,28 +130,78 @@ export class ReviewService {
         entityId: reviewCase.targetId,
         reason,
       });
+      const property = tx.property?.findUnique
+        ? await tx.property.findUnique({
+            where: { id: reviewCase.targetId },
+            select: { ownerId: true },
+          })
+        : null;
+      if (property)
+        if (tx.outboxEvent?.create)
+          await tx.outboxEvent.create({
+            data: {
+              eventType: 'NOTIFICATION_REQUESTED',
+              payload: {
+                userId: property.ownerId,
+                title: 'Listing review approved',
+                body: 'Your property passed review and is ready for the next publishing step.',
+                eventType: 'REVIEW_APPROVED',
+                deduplicationKey: `review:${reviewCase.id}:APPROVED`,
+                channels: ['IN_APP', 'EMAIL'],
+              } as any,
+            },
+          });
 
       return updatedCase;
     });
   }
 
   async reject(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'REJECT', ReviewState.REJECTED, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'REJECT',
+      ReviewState.REJECTED,
+      reason,
+    );
   }
 
   async suspend(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'SUSPEND', ReviewState.SUSPENDED, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'SUSPEND',
+      ReviewState.SUSPENDED,
+      reason,
+    );
   }
 
   async expire(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'EXPIRE', ReviewState.EXPIRED, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'EXPIRE',
+      ReviewState.EXPIRED,
+      reason,
+    );
   }
 
   async reopen(caseId: string, reviewerId: string, reason: string) {
-    return this.executeReviewAction(caseId, reviewerId, 'REOPEN', ReviewState.PENDING, reason);
+    return this.executeReviewAction(
+      caseId,
+      reviewerId,
+      'REOPEN',
+      ReviewState.PENDING,
+      reason,
+    );
   }
 
-  async overrideCheck(propertyId: string, reviewerId: string, checkType: string, reason: string) {
+  async overrideCheck(
+    propertyId: string,
+    reviewerId: string,
+    checkType: string,
+    reason: string,
+  ) {
     if (!MANDATORY_CHECKS.includes(checkType)) {
       throw new BadRequestException('Invalid check type');
     }
@@ -154,7 +239,6 @@ export class ReviewService {
         entityId: propertyId,
         reason,
       });
-
       return verification;
     });
   }
@@ -164,7 +248,7 @@ export class ReviewService {
     reviewerId: string,
     action: string,
     newState: ReviewState,
-    reason: string
+    reason: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const reviewCase = await tx.reviewCase.update({
@@ -188,6 +272,27 @@ export class ReviewService {
         entityId: caseId,
         reason,
       });
+      const property = tx.property?.findUnique
+        ? await tx.property.findUnique({
+            where: { id: reviewCase.targetId },
+            select: { ownerId: true },
+          })
+        : null;
+      if (property && action !== 'ASSIGN' && action !== 'REOPEN')
+        if (tx.outboxEvent?.create)
+          await tx.outboxEvent.create({
+            data: {
+              eventType: 'NOTIFICATION_REQUESTED',
+              payload: {
+                userId: property.ownerId,
+                title: 'Listing review updated',
+                body: `Your listing review was updated: ${action.toLowerCase()}.`,
+                eventType: 'REVIEW_CHANGED',
+                deduplicationKey: `review:${reviewCase.id}:${action}:${newState}`,
+                channels: ['IN_APP', 'EMAIL'],
+              } as any,
+            },
+          });
 
       return reviewCase;
     });

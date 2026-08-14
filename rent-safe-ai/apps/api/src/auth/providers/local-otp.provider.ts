@@ -10,7 +10,9 @@ export class LocalOtpProvider implements OtpProvider {
       this.logger.log(`[MOCK OTP] Sent OTP ${otp} to ${phone}`);
     } else {
       // In a real environment, this should throw or be replaced by a real provider
-      this.logger.warn(`Attempted to use LocalOtpProvider in production for phone ${phone}`);
+      this.logger.warn(
+        `Attempted to use LocalOtpProvider in production for phone ${phone}`,
+      );
     }
   }
 }

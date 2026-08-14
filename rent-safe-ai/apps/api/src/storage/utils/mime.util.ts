@@ -1,6 +1,10 @@
 export class MimeUtil {
   static readonly ALLOWED_DOCUMENT_MIMES = ['application/pdf'];
-  static readonly ALLOWED_MEDIA_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+  static readonly ALLOWED_MEDIA_MIMES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+  ];
 
   static readonly MAX_DOCUMENT_SIZE = 5 * 1024 * 1024; // 5MB
   static readonly MAX_MEDIA_SIZE = 10 * 1024 * 1024; // 10MB

@@ -1,0 +1,8 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "rentsafe-local-secret"
+description = "RentSafe development secret in committed source"
+regex = '''(?i)(JWT_SECRET|PAYMENT_WEBHOOK_SECRET|MALWARE_SCAN_SECRET|KYC_WEBHOOK_SECRET)\s*[=:]\s*["'][^"']{16,}["']'''
+tags = ["secret", "rentsafe"]

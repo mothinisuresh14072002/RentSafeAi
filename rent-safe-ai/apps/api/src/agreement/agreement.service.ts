@@ -23,14 +23,20 @@ export class AgreementService {
     private readonly audit: AuditService,
   ) {}
 
-  async createDraft(ownerId: string, listingId: string, tenantId: string, reason: string) {
+  async createDraft(
+    ownerId: string,
+    listingId: string,
+    tenantId: string,
+    reason: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const listing = await tx.listing.findUnique({
         where: { id: listingId },
         include: { property: true },
       });
       if (!listing) throw new NotFoundException('Listing not found');
-      if (listing.property.ownerId !== ownerId) throw new ForbiddenException('Not the listing owner');
+      if (listing.property.ownerId !== ownerId)
+        throw new ForbiddenException('Not the listing owner');
 
       const agreement = await tx.agreement.create({
         data: {
@@ -42,12 +48,23 @@ export class AgreementService {
         },
       });
 
-      await this.audit.log(tx, { actorId: ownerId, action: 'AGREEMENT_DRAFT_CREATED', entityType: 'Agreement', entityId: agreement.id, reason });
+      await this.audit.log(tx, {
+        actorId: ownerId,
+        action: 'AGREEMENT_DRAFT_CREATED',
+        entityType: 'Agreement',
+        entityId: agreement.id,
+        reason,
+      });
       return { agreement, disclaimer: DISCLAIMER };
     });
   }
 
-  async recordUpload(userId: string, agreementId: string, documentKey: string, reason: string) {
+  async recordUpload(
+    userId: string,
+    agreementId: string,
+    documentKey: string,
+    reason: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const agreement = await this._getAndAuthorize(tx, userId, agreementId);
 
@@ -60,7 +77,13 @@ export class AgreementService {
         data: { documentKey, status: AgreementStatus.UPLOADED },
       });
 
-      await this.audit.log(tx, { actorId: userId, action: 'AGREEMENT_UPLOADED', entityType: 'Agreement', entityId: agreementId, reason });
+      await this.audit.log(tx, {
+        actorId: userId,
+        action: 'AGREEMENT_UPLOADED',
+        entityType: 'Agreement',
+        entityId: agreementId,
+        reason,
+      });
       return { updated, disclaimer: DISCLAIMER };
     });
   }
@@ -70,7 +93,9 @@ export class AgreementService {
       const agreement = await this._getAndAuthorize(tx, userId, agreementId);
 
       if (agreement.status !== AgreementStatus.UPLOADED) {
-        throw new BadRequestException('Agreement must be UPLOADED before signing');
+        throw new BadRequestException(
+          'Agreement must be UPLOADED before signing',
+        );
       }
 
       const updated = await tx.agreement.update({
@@ -78,7 +103,13 @@ export class AgreementService {
         data: { status: AgreementStatus.SIGNED },
       });
 
-      await this.audit.log(tx, { actorId: userId, action: 'AGREEMENT_SIGNED', entityType: 'Agreement', entityId: agreementId, reason });
+      await this.audit.log(tx, {
+        actorId: userId,
+        action: 'AGREEMENT_SIGNED',
+        entityType: 'Agreement',
+        entityId: agreementId,
+        reason,
+      });
       return { updated, disclaimer: DISCLAIMER };
     });
   }
@@ -92,7 +123,13 @@ export class AgreementService {
         data: { status: AgreementStatus.REJECTED },
       });
 
-      await this.audit.log(tx, { actorId: userId, action: 'AGREEMENT_REJECTED', entityType: 'Agreement', entityId: agreementId, reason });
+      await this.audit.log(tx, {
+        actorId: userId,
+        action: 'AGREEMENT_REJECTED',
+        entityType: 'Agreement',
+        entityId: agreementId,
+        reason,
+      });
       return updated;
     });
   }
@@ -102,10 +139,13 @@ export class AgreementService {
    * Policy consumers only see status + reference ID — never the private document key.
    */
   async getStateReference(userId: string, agreementId: string) {
-    const agreement = await this.prisma.agreement.findUnique({ where: { id: agreementId } });
+    const agreement = await this.prisma.agreement.findUnique({
+      where: { id: agreementId },
+    });
     if (!agreement) throw new NotFoundException('Agreement not found');
 
-    const isParticipant = agreement.tenantId === userId || agreement.ownerId === userId;
+    const isParticipant =
+      agreement.tenantId === userId || agreement.ownerId === userId;
     if (!isParticipant) throw new ForbiddenException('Not a participant');
 
     return {
@@ -120,11 +160,15 @@ export class AgreementService {
   }
 
   private async _getAndAuthorize(tx: any, userId: string, agreementId: string) {
-    const agreement = await tx.agreement.findUnique({ where: { id: agreementId } });
+    const agreement = await tx.agreement.findUnique({
+      where: { id: agreementId },
+    });
     if (!agreement) throw new NotFoundException('Agreement not found');
 
-    const isParticipant = agreement.tenantId === userId || agreement.ownerId === userId;
-    if (!isParticipant) throw new ForbiddenException('Not a participant in this agreement');
+    const isParticipant =
+      agreement.tenantId === userId || agreement.ownerId === userId;
+    if (!isParticipant)
+      throw new ForbiddenException('Not a participant in this agreement');
     return agreement;
   }
 }

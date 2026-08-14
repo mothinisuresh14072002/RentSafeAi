@@ -4,16 +4,17 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class SandboxKycProvider implements KycProvider {
-  private readonly SECRET = 'sandbox-secret-key';
+  private readonly SECRET =
+    process.env.KYC_WEBHOOK_SECRET || 'development-only-kyc-webhook-secret';
 
   async initiateVerification(userId: string, inputData: any): Promise<string> {
     const providerReference = `sbx_${crypto.randomBytes(8).toString('hex')}`;
-    
+
     // Determine deterministic outcome based on aadhaar prefix
     const aadhaar = inputData.aadhaar || '';
     let scenario = 'PASS';
     let expectedName = inputData.expectedName || 'John Doe';
-    let dob = '1990-01-01';
+    const dob = '1990-01-01';
 
     if (aadhaar.startsWith('FAIL')) {
       scenario = 'FAIL';
@@ -39,10 +40,20 @@ export class SandboxKycProvider implements KycProvider {
       .createHmac('sha256', this.SECRET)
       .update(JSON.stringify(payload))
       .digest('hex');
-    return signature === expectedSig;
+    const supplied = Buffer.from(signature || '');
+    const expected = Buffer.from(expectedSig);
+    return (
+      supplied.length === expected.length &&
+      crypto.timingSafeEqual(supplied, expected)
+    );
   }
 
-  private simulateWebhook(reference: string, scenario: string, name: string, dob: string) {
+  private simulateWebhook(
+    reference: string,
+    scenario: string,
+    name: string,
+    dob: string,
+  ) {
     const payload = {
       reference,
       status: scenario === 'FAIL' ? 'FAILED' : 'SUCCESS',
@@ -52,7 +63,7 @@ export class SandboxKycProvider implements KycProvider {
         rawAadhaar: '123412341234', // This should be masked before storing
       },
     };
-    
+
     const signature = crypto
       .createHmac('sha256', this.SECRET)
       .update(JSON.stringify(payload))
@@ -69,6 +80,6 @@ export class SandboxKycProvider implements KycProvider {
         'x-sandbox-signature': signature,
       },
       body: JSON.stringify(payload),
-    }).catch(err => console.error('Sandbox webhook failed:', err.message));
+    }).catch((err) => console.error('Sandbox webhook failed:', err.message));
   }
 }

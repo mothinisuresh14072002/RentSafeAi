@@ -20,7 +20,9 @@ export class FraudProcessor extends WorkerHost {
 
   async process(job: Job<DuplicateDetectionJobData>): Promise<void> {
     const { entityType, entityId } = job.data;
-    this.logger.log(`Processing duplicate detection for ${entityType} ${entityId}`);
+    this.logger.log(
+      `Processing duplicate detection for ${entityType} ${entityId}`,
+    );
 
     if (entityType === 'PROPERTY_DOCUMENT') {
       await this.processPropertyDocument(entityId);
@@ -95,17 +97,27 @@ export class FraudProcessor extends WorkerHost {
       for (const other of allOtherMedia) {
         if (!other.pHash) continue;
         try {
-          const distance = HammingDistanceUtil.calculate(media.pHash, other.pHash);
-          if (distance <= 10) { // Configurable threshold
-            await this.createSignal('NEAR_DUPLICATE_MEDIA', SignalSeverity.MEDIUM, {
-              entityType: 'LISTING_MEDIA',
-              entityId: media.id,
-              matchedEntityId: other.id,
-              similarityScore: distance, // We store distance as the score
-            });
+          const distance = HammingDistanceUtil.calculate(
+            media.pHash,
+            other.pHash,
+          );
+          if (distance <= 10) {
+            // Configurable threshold
+            await this.createSignal(
+              'NEAR_DUPLICATE_MEDIA',
+              SignalSeverity.MEDIUM,
+              {
+                entityType: 'LISTING_MEDIA',
+                entityId: media.id,
+                matchedEntityId: other.id,
+                similarityScore: distance, // We store distance as the score
+              },
+            );
           }
         } catch (e) {
-          this.logger.warn(`Failed to calculate hamming distance for ${media.id} and ${other.id}`);
+          this.logger.warn(
+            `Failed to calculate hamming distance for ${media.id} and ${other.id}`,
+          );
         }
       }
     }
@@ -114,16 +126,20 @@ export class FraudProcessor extends WorkerHost {
   private async createSignal(
     ruleCode: string,
     severity: SignalSeverity,
-    evidence: any
+    evidence: any,
   ) {
     await this.prisma.riskSignal.create({
       data: {
         ruleCode,
         severity,
+        entityType: evidence.entityType,
+        entityId: evidence.entityId,
         evidenceJson: evidence,
         status: SignalStatus.ACTIVE,
       },
     });
-    this.logger.warn(`Risk signal generated for ${ruleCode} on entity ${evidence.entityId}`);
+    this.logger.warn(
+      `Risk signal generated for ${ruleCode} on entity ${evidence.entityId}`,
+    );
   }
 }

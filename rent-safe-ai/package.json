@@ -11,7 +11,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "prepare": "husky install",
     "db:migrate": "pnpm --filter api db:migrate",
-    "db:seed": "pnpm --filter api db:seed"
+    "db:seed": "pnpm --filter api db:seed",
+    "ops:backup": "powershell -ExecutionPolicy Bypass -File scripts/backup-postgres.ps1",
+    "ops:restore": "powershell -ExecutionPolicy Bypass -File scripts/restore-postgres.ps1",
+    "ops:retention": "powershell -ExecutionPolicy Bypass -File scripts/prune-retention.ps1"
   },
   "devDependencies": {
     "turbo": "^2.0.0",

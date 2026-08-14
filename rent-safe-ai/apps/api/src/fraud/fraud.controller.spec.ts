@@ -28,7 +28,9 @@ describe('FraudController', () => {
         {
           provide: StorageService,
           useValue: {
-            generatePresignedDownloadUrl: jest.fn().mockResolvedValue('http://url'),
+            generatePresignedDownloadUrl: jest
+              .fn()
+              .mockResolvedValue('http://url'),
           },
         },
       ],
@@ -40,7 +42,9 @@ describe('FraudController', () => {
   });
 
   it('gets signals', async () => {
-    jest.spyOn(prisma.riskSignal, 'findMany').mockResolvedValue([{ id: 's1' }] as any);
+    jest
+      .spyOn(prisma.riskSignal, 'findMany')
+      .mockResolvedValue([{ id: 's1' }] as any);
     const result = await controller.getSignals(0, 10);
     expect(result.data.length).toBe(1);
     expect(prisma.riskSignal.findMany).toHaveBeenCalled();
@@ -50,12 +54,26 @@ describe('FraudController', () => {
     jest.spyOn(prisma.riskSignal, 'findUnique').mockResolvedValue({
       id: 's1',
       ruleCode: 'NEAR_DUPLICATE_MEDIA',
-      evidenceJson: { entityType: 'LISTING_MEDIA', entityId: 'm1', matchedEntityId: 'm2', similarityScore: 5 },
+      evidenceJson: {
+        entityType: 'LISTING_MEDIA',
+        entityId: 'm1',
+        matchedEntityId: 'm2',
+        similarityScore: 5,
+      },
     } as any);
 
-    jest.spyOn(prisma.listingMedia, 'findUnique')
-      .mockResolvedValueOnce({ id: 'm1', privateOriginalKey: 'k1', listingId: 'l1' } as any)
-      .mockResolvedValueOnce({ id: 'm2', privateOriginalKey: 'k2', listingId: 'l2' } as any);
+    jest
+      .spyOn(prisma.listingMedia, 'findUnique')
+      .mockResolvedValueOnce({
+        id: 'm1',
+        privateOriginalKey: 'k1',
+        listingId: 'l1',
+      } as any)
+      .mockResolvedValueOnce({
+        id: 'm2',
+        privateOriginalKey: 'k2',
+        listingId: 'l2',
+      } as any);
 
     const result = await controller.getMediaComparison('s1');
     expect(result.similarityScore).toBe(5);
@@ -70,6 +88,8 @@ describe('FraudController', () => {
       evidenceJson: { entityType: 'PROPERTY_DOCUMENT' },
     } as any);
 
-    await expect(controller.getMediaComparison('s1')).rejects.toThrow(NotFoundException);
+    await expect(controller.getMediaComparison('s1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

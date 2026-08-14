@@ -1,9 +1,19 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { RiskService } from './risk.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles, RolesGuard } from '../auth/roles.guard';
 
 @Controller('risk')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('REVIEWER', 'ADMIN')
 export class RiskController {
   constructor(private readonly riskService: RiskService) {}
 
@@ -29,7 +39,11 @@ export class RiskController {
     @Param('signalId') signalId: string,
     @Body('resolution') resolution: string,
   ) {
-    return this.riskService.resolveSignal(signalId, req.user.userId, resolution);
+    return this.riskService.resolveSignal(
+      signalId,
+      req.user.userId,
+      resolution,
+    );
   }
 
   /** Admin: trigger a re-evaluation for an entity */

@@ -16,7 +16,9 @@ export class SearchController {
       bedrooms: query.bedrooms ? Number(query.bedrooms) : undefined,
       furnishing: query.furnishing,
       propertyType: query.propertyType,
-      availability: query.availability ? new Date(query.availability) : undefined,
+      availability: query.availability
+        ? new Date(query.availability)
+        : undefined,
     };
 
     const pagination: PaginationSort = {

@@ -28,7 +28,9 @@ export class Policies {
     });
 
     if (!profile || profile.ownerState !== OwnerState.VERIFIED) {
-      throw new ForbiddenException('Owner verification is required before submitting properties');
+      throw new ForbiddenException(
+        'Owner verification is required before submitting properties',
+      );
     }
   }
 
@@ -39,7 +41,9 @@ export class Policies {
     });
 
     if (!property || property.ownerId !== userId) {
-      throw new ForbiddenException('You do not have permission to access this property evidence.');
+      throw new ForbiddenException(
+        'You do not have permission to access this property evidence.',
+      );
     }
 
     return true;

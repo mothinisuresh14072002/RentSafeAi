@@ -3,8 +3,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import * as compression from 'compression';
-// @ts-ignore
-const comp = typeof compression === 'function' ? compression : (compression as any).default || compression;
+const comp =
+  typeof compression === 'function'
+    ? compression
+    : (compression as any).default || compression;
 import { Logger } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { envSchema } from './config/env.validation';
@@ -19,7 +21,7 @@ async function bootstrap() {
   // 1. Logger setup
   const logger = app.get(Logger);
   app.useLogger(logger);
-  
+
   // 2. Global prefix
   app.setGlobalPrefix('api/v1');
 
@@ -28,7 +30,11 @@ async function bootstrap() {
 
   // 4. CORS allowlist setup
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',')
+      : env.NODE_ENV === 'production'
+        ? []
+        : '*',
     credentials: true,
   });
 

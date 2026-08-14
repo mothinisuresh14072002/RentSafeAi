@@ -9,5 +9,7 @@ export interface StructuredAddressDto {
 }
 
 export interface GeocodingProvider {
-  geocodeAddress(structuredAddress: StructuredAddressDto): Promise<{ latitude: number; longitude: number }>;
+  geocodeAddress(
+    structuredAddress: StructuredAddressDto,
+  ): Promise<{ latitude: number; longitude: number }>;
 }

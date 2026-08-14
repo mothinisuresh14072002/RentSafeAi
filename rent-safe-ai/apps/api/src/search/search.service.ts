@@ -24,7 +24,8 @@ export interface PaginationSort {
 
 @Injectable()
 export class SearchService {
-  private readonly SAFETY_WARNING = 'SAFETY WARNING: Never transfer money outside of the platform. RentSafe AI will never ask for a wire transfer or cash. All payments must be routed through the platform to guarantee safety and fraud protection.';
+  private readonly SAFETY_WARNING =
+    'SAFETY WARNING: Never transfer money outside of the platform. RentSafe AI will never ask for a wire transfer or cash. All payments must be routed through the platform to guarantee safety and fraud protection.';
   private readonly OWNER_WORDING = 'Listed by verified owner';
 
   constructor(
@@ -35,7 +36,7 @@ export class SearchService {
   async searchListings(filters: SearchFilters, pagination: PaginationSort) {
     const skip = Number(pagination.skip) || 0;
     const take = Number(pagination.take) || 20;
-    const orderBy = {};
+    const orderBy: Record<string, 'asc' | 'desc'> = {};
     if (pagination.sortBy) {
       orderBy[pagination.sortBy] = pagination.sortDir || 'desc';
     } else {
@@ -62,10 +63,16 @@ export class SearchService {
       where.rentAmount = { ...where.rentAmount, lte: Number(filters.maxRent) };
     }
     if (filters.minDeposit) {
-      where.depositAmount = { ...where.depositAmount, gte: Number(filters.minDeposit) };
+      where.depositAmount = {
+        ...where.depositAmount,
+        gte: Number(filters.minDeposit),
+      };
     }
     if (filters.maxDeposit) {
-      where.depositAmount = { ...where.depositAmount, lte: Number(filters.maxDeposit) };
+      where.depositAmount = {
+        ...where.depositAmount,
+        lte: Number(filters.maxDeposit),
+      };
     }
     if (filters.bedrooms) {
       where.bedroomCount = Number(filters.bedrooms);
@@ -94,7 +101,9 @@ export class SearchService {
 
     const total = await this.prisma.listing.count({ where });
 
-    const mapped = await Promise.all(listings.map(l => this.mapToPublicDto(l)));
+    const mapped = await Promise.all(
+      listings.map((l) => this.mapToPublicDto(l)),
+    );
 
     return {
       data: mapped,
@@ -124,16 +133,21 @@ export class SearchService {
     return this.mapToPublicDto(listing, true);
   }
 
-  private async mapToPublicDto(listing: any, includeVerifications: boolean = false) {
+  private async mapToPublicDto(
+    listing: any,
+    includeVerifications: boolean = false,
+  ) {
     // Media URLs
     const mediaUrls = await Promise.all(
       listing.media.map(async (m) => {
         // We use publicDerivativeKey to generate presigned URLs safely
         return {
           id: m.id,
-          url: await this.storageService.generatePresignedDownloadUrl(m.publicDerivativeKey),
+          url: await this.storageService.generatePresignedDownloadUrl(
+            m.publicDerivativeKey,
+          ),
         };
-      })
+      }),
     );
 
     const dto: any = {
@@ -162,7 +176,11 @@ export class SearchService {
 
     if (includeVerifications && listing.property.verifications) {
       dto.verifications = listing.property.verifications
-        .filter((v) => v.status === VerificationStatus.VERIFIED || v.status === 'APPROVED' as any)
+        .filter(
+          (v) =>
+            v.status === VerificationStatus.VERIFIED ||
+            v.status === ('APPROVED' as any),
+        )
         .map((v) => ({
           checkType: v.checkType,
           verifiedAt: v.completedAt || v.updatedAt,

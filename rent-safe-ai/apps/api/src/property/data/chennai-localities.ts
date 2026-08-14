@@ -17,7 +17,7 @@ export const CHENNAI_LOCALITIES = [
   'Thiruvanmiyur',
   'Velachery',
   'Virugambakkam',
-].map(l => l.toUpperCase());
+].map((l) => l.toUpperCase());
 
 export function isValidChennaiLocality(locality: string): boolean {
   if (!locality) return false;

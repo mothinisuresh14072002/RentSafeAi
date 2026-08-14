@@ -4,8 +4,16 @@ import { Role } from '@prisma/client';
 
 export const ROLES_KEY = 'roles';
 export const Roles = (...roles: Role[]) => {
-  return (target: any, key?: string | symbol, descriptor?: TypedPropertyDescriptor<any>) => {
-    Reflector.createDecorator<Role[]>()(roles)(target, key as string, descriptor as PropertyDescriptor);
+  return (
+    target: any,
+    key?: string | symbol,
+    descriptor?: TypedPropertyDescriptor<any>,
+  ) => {
+    Reflector.createDecorator<Role[]>()(roles)(
+      target,
+      key as string,
+      descriptor as PropertyDescriptor,
+    );
   };
 };
 

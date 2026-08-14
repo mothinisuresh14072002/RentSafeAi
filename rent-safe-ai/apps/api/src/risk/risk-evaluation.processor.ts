@@ -33,7 +33,9 @@ export class RiskEvaluationProcessor extends WorkerHost {
         await this.evaluateUser(entityId);
         break;
       default:
-        this.logger.warn(`Unknown entityType for risk evaluation: ${entityType}`);
+        this.logger.warn(
+          `Unknown entityType for risk evaluation: ${entityType}`,
+        );
     }
   }
 
@@ -50,7 +52,10 @@ export class RiskEvaluationProcessor extends WorkerHost {
 
     // Rule: CRITICAL_CHANGE_AFTER_APPROVAL
     // If there's more than one version AND the listing was approved before, signal it
-    if (listing.versions.length > 1 && listing.lifecycleState !== PublishStatus.DRAFT) {
+    if (
+      listing.versions.length > 1 &&
+      listing.lifecycleState !== PublishStatus.DRAFT
+    ) {
       await this.riskService.upsertSignal(
         'CRITICAL_CHANGE_AFTER_APPROVAL',
         'Listing',
@@ -93,7 +98,10 @@ export class RiskEvaluationProcessor extends WorkerHost {
           'DUPLICATE_PROPERTY_IDENTIFIER',
           'Listing',
           listingId,
-          { conflictingIdentifierId: dup.id, identifierType: identifier.identifierType },
+          {
+            conflictingIdentifierId: dup.id,
+            identifierType: identifier.identifierType,
+          },
         );
       }
     }

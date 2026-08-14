@@ -21,10 +21,15 @@ export class KycService {
     });
 
     if (!profile || profile.ownerState !== OwnerState.KYC_PENDING) {
-      throw new BadRequestException('Owner must be in KYC_PENDING state to initiate verification.');
+      throw new BadRequestException(
+        'Owner must be in KYC_PENDING state to initiate verification.',
+      );
     }
 
-    const providerReference = await this.provider.initiateVerification(userId, inputData);
+    const providerReference = await this.provider.initiateVerification(
+      userId,
+      inputData,
+    );
 
     return this.prisma.ownerKycCase.create({
       data: {
@@ -64,9 +69,9 @@ export class KycService {
         aadhaar: RedactionUtil.maskAadhaar(data?.rawAadhaar) || '***',
       };
 
-      let newStatus = VerificationStatus.VERIFIED;
-      let newOwnerState = OwnerState.VERIFIED;
-      let reviewerDecision = null;
+      let newStatus: VerificationStatus = VerificationStatus.VERIFIED;
+      let newOwnerState: OwnerState = OwnerState.VERIFIED;
+      let reviewerDecision: string | null = null;
 
       if (status === 'FAILED') {
         newStatus = VerificationStatus.REJECTED;
@@ -96,6 +101,20 @@ export class KycService {
         where: { userId: kycCase.userId },
         data: { ownerState: newOwnerState },
       });
+      if (tx.outboxEvent?.create)
+        await tx.outboxEvent.create({
+          data: {
+            eventType: 'NOTIFICATION_REQUESTED',
+            payload: {
+              userId: kycCase.userId,
+              title: 'KYC status updated',
+              body: `Your identity verification is ${newStatus.toLowerCase()}.`,
+              eventType: 'KYC_STATUS_CHANGED',
+              deduplicationKey: `kyc:${kycCase.id}:${newStatus}`,
+              channels: ['IN_APP', 'EMAIL'],
+            } as any,
+          },
+        });
 
       // Log the transition
       const actionReason = `KYC Webhook updated state to ${newOwnerState}`;
@@ -132,15 +151,26 @@ export class KycService {
     });
   }
 
-  async submitReviewerDecision(caseId: string, reviewerId: string, decision: 'APPROVED' | 'REJECTED', reason: string) {
+  async submitReviewerDecision(
+    caseId: string,
+    reviewerId: string,
+    decision: 'APPROVED' | 'REJECTED',
+    reason: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      const kycCase = await tx.ownerKycCase.findUnique({ where: { id: caseId } });
+      const kycCase = await tx.ownerKycCase.findUnique({
+        where: { id: caseId },
+      });
       if (!kycCase || kycCase.status !== VerificationStatus.NEEDS_REVIEW) {
         throw new BadRequestException('Case not available for review');
       }
 
-      const newStatus = decision === 'APPROVED' ? VerificationStatus.VERIFIED : VerificationStatus.REJECTED;
-      const newOwnerState = decision === 'APPROVED' ? OwnerState.VERIFIED : OwnerState.REJECTED;
+      const newStatus =
+        decision === 'APPROVED'
+          ? VerificationStatus.VERIFIED
+          : VerificationStatus.REJECTED;
+      const newOwnerState =
+        decision === 'APPROVED' ? OwnerState.VERIFIED : OwnerState.REJECTED;
 
       await tx.ownerKycCase.update({
         where: { id: caseId },
@@ -155,6 +185,20 @@ export class KycService {
         where: { userId: kycCase.userId },
         data: { ownerState: newOwnerState },
       });
+      if (tx.outboxEvent?.create)
+        await tx.outboxEvent.create({
+          data: {
+            eventType: 'NOTIFICATION_REQUESTED',
+            payload: {
+              userId: kycCase.userId,
+              title: 'KYC review decision',
+              body: `Your identity verification was ${decision.toLowerCase()}.`,
+              eventType: 'KYC_REVIEW_DECISION',
+              deduplicationKey: `kyc:${kycCase.id}:manual:${decision}`,
+              channels: ['IN_APP', 'EMAIL'],
+            } as any,
+          },
+        });
 
       await this.auditService.log(tx, {
         actorId: reviewerId,

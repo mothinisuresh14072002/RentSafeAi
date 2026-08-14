@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConsentService } from './consent.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { IsString, IsNotEmpty } from 'class-validator';
@@ -27,7 +35,11 @@ export class ConsentController {
   @Post('record')
   @HttpCode(HttpStatus.CREATED)
   async recordConsent(@Request() req, @Body() dto: ConsentDto) {
-    return this.consentService.recordConsent(req.user.userId, dto.policyVersion, dto.purpose);
+    return this.consentService.recordConsent(
+      req.user.userId,
+      dto.policyVersion,
+      dto.purpose,
+    );
   }
 
   @Post('withdraw')

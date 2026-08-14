@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Headers, HttpCode, HttpStatus, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+} from '@nestjs/common';
 import { KycService } from './kyc.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -25,7 +36,10 @@ export class KycController {
   // Webhook is public but requires signature
   @Post('webhook/sandbox')
   @HttpCode(HttpStatus.OK)
-  async handleWebhook(@Headers('x-sandbox-signature') signature: string, @Body() body: any) {
+  async handleWebhook(
+    @Headers('x-sandbox-signature') signature: string,
+    @Body() body: any,
+  ) {
     return this.kycService.handleWebhook(signature, body);
   }
 }
@@ -44,7 +58,16 @@ export class ReviewerKycController {
   @Post(':id/decision')
   @UseGuards(AuditReasonGuard)
   @AuditReasonRequired()
-  async submitDecision(@Param('id') id: string, @Request() req, @Body() body: { decision: 'APPROVED' | 'REJECTED' }) {
-    return this.kycService.submitReviewerDecision(id, req.user.userId, body.decision, req.auditReason);
+  async submitDecision(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() body: { decision: 'APPROVED' | 'REJECTED' },
+  ) {
+    return this.kycService.submitReviewerDecision(
+      id,
+      req.user.userId,
+      body.decision,
+      req.auditReason,
+    );
   }
 }

@@ -50,34 +50,48 @@ describe('ReviewService', () => {
   describe('approve', () => {
     it('throws if any mandatory checks are missing or not verified', async () => {
       jest.spyOn(prisma.reviewCase, 'findUnique').mockResolvedValue({
-        id: 'case1', targetId: 'prop1',
+        id: 'case1',
+        targetId: 'prop1',
       } as any);
 
       // Return only 1 verified check, meaning 9 are missing
       jest.spyOn(prisma.propertyVerification, 'findMany').mockResolvedValue([
-        { checkType: 'IDENTITY_KYC', status: VerificationStatus.VERIFIED } as any
+        {
+          checkType: 'IDENTITY_KYC',
+          status: VerificationStatus.VERIFIED,
+        } as any,
       ]);
 
-      await expect(service.approve('case1', 'reviewer1', 'Looks good')).rejects.toThrow(BadRequestException);
+      await expect(
+        service.approve('case1', 'reviewer1', 'Looks good'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('approves if all mandatory checks are verified', async () => {
       jest.spyOn(prisma.reviewCase, 'findUnique').mockResolvedValue({
-        id: 'case1', targetId: 'prop1',
+        id: 'case1',
+        targetId: 'prop1',
       } as any);
 
-      const verifications = MANDATORY_CHECKS.map(check => ({
-        checkType: check, status: VerificationStatus.VERIFIED
+      const verifications = MANDATORY_CHECKS.map((check) => ({
+        checkType: check,
+        status: VerificationStatus.VERIFIED,
       }));
 
-      jest.spyOn(prisma.propertyVerification, 'findMany').mockResolvedValue(verifications as any);
-      const updateCaseSpy = jest.spyOn(prisma.reviewCase, 'update').mockResolvedValue({} as any);
+      jest
+        .spyOn(prisma.propertyVerification, 'findMany')
+        .mockResolvedValue(verifications as any);
+      const updateCaseSpy = jest
+        .spyOn(prisma.reviewCase, 'update')
+        .mockResolvedValue({} as any);
 
       await service.approve('case1', 'reviewer1', 'Looks perfect');
 
-      expect(updateCaseSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: { status: ReviewState.APPROVED },
-      }));
+      expect(updateCaseSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: ReviewState.APPROVED },
+        }),
+      );
       expect(prisma.reviewAction.create).toHaveBeenCalled();
       expect(audit.log).toHaveBeenCalled();
     });
@@ -85,13 +99,17 @@ describe('ReviewService', () => {
 
   describe('reject', () => {
     it('rejects successfully regardless of checks', async () => {
-      const updateCaseSpy = jest.spyOn(prisma.reviewCase, 'update').mockResolvedValue({} as any);
+      const updateCaseSpy = jest
+        .spyOn(prisma.reviewCase, 'update')
+        .mockResolvedValue({} as any);
 
       await service.reject('case1', 'reviewer1', 'Suspicious');
 
-      expect(updateCaseSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: { status: ReviewState.REJECTED },
-      }));
+      expect(updateCaseSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { status: ReviewState.REJECTED },
+        }),
+      );
       expect(prisma.reviewAction.create).toHaveBeenCalled();
     });
   });

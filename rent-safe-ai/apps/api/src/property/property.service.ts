@@ -1,9 +1,16 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { SandboxGeocodingProvider } from './providers/sandbox-geocoding.provider';
 import { StructuredAddressDto } from './providers/geocoding.provider';
 import { AddressNormalizer } from './utils/address.normalizer';
-import { isValidChennaiLocality, isValidChennaiPinCode } from './data/chennai-localities';
+import {
+  isValidChennaiLocality,
+  isValidChennaiPinCode,
+} from './data/chennai-localities';
 import { Policies } from '../auth/policies';
 import { PropertyType, PropertyStatus } from '@prisma/client';
 import { AuditService } from '../common/audit/audit.service';
@@ -30,10 +37,14 @@ export class PropertyService {
 
     // 2. Validation
     if (!isValidChennaiLocality(dto.address.locality)) {
-      throw new BadRequestException(`Locality ${dto.address.locality} is not within our supported Chennai bounds.`);
+      throw new BadRequestException(
+        `Locality ${dto.address.locality} is not within our supported Chennai bounds.`,
+      );
     }
     if (!isValidChennaiPinCode(dto.address.pinCode)) {
-      throw new BadRequestException(`PIN Code ${dto.address.pinCode} is not a valid Chennai boundary.`);
+      throw new BadRequestException(
+        `PIN Code ${dto.address.pinCode} is not a valid Chennai boundary.`,
+      );
     }
 
     // 3. Geocoding
@@ -47,9 +58,11 @@ export class PropertyService {
       const existing = await tx.property.findUnique({
         where: { normalizedAddressHash },
       });
-      
+
       if (existing) {
-        throw new ConflictException('A property at this exact address is already registered.');
+        throw new ConflictException(
+          'A property at this exact address is already registered.',
+        );
       }
 
       const property = await tx.property.create({
@@ -67,8 +80,13 @@ export class PropertyService {
 
       // 5. Identifiers
       for (const idf of dto.identifiers) {
-        const normalizedHash = crypto.createHash('sha256').update(idf.value.trim().toLowerCase()).digest('hex');
-        const encryptedValue = Buffer.from(`enc_${idf.value}`).toString('base64');
+        const normalizedHash = crypto
+          .createHash('sha256')
+          .update(idf.value.trim().toLowerCase())
+          .digest('hex');
+        const encryptedValue = Buffer.from(`enc_${idf.value}`).toString(
+          'base64',
+        );
 
         // Note: we might want to check duplicate identifier here globally, but schema handles constraints if we add them.
         // For MVP, we will just store it.

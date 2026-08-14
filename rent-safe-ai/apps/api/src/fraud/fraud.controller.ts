@@ -1,4 +1,11 @@
-import { Controller, Get, Param, UseGuards, Query, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Query,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,7 +21,10 @@ export class FraudController {
   ) {}
 
   @Get('signals')
-  async getSignals(@Query('skip') skip: number = 0, @Query('take') take: number = 20) {
+  async getSignals(
+    @Query('skip') skip: number = 0,
+    @Query('take') take: number = 20,
+  ) {
     const signals = await this.prisma.riskSignal.findMany({
       skip: Number(skip),
       take: Number(take),
@@ -25,7 +35,9 @@ export class FraudController {
 
   @Get('compare/media/:signalId')
   async getMediaComparison(@Param('signalId') signalId: string) {
-    const signal = await this.prisma.riskSignal.findUnique({ where: { id: signalId } });
+    const signal = await this.prisma.riskSignal.findUnique({
+      where: { id: signalId },
+    });
     if (!signal) {
       throw new NotFoundException('Signal not found');
     }
@@ -35,15 +47,23 @@ export class FraudController {
       throw new NotFoundException('Signal is not a media duplicate type');
     }
 
-    const media1 = await this.prisma.listingMedia.findUnique({ where: { id: evidence.entityId } });
-    const media2 = await this.prisma.listingMedia.findUnique({ where: { id: evidence.matchedEntityId } });
+    const media1 = await this.prisma.listingMedia.findUnique({
+      where: { id: evidence.entityId },
+    });
+    const media2 = await this.prisma.listingMedia.findUnique({
+      where: { id: evidence.matchedEntityId },
+    });
 
     if (!media1 || !media2) {
       throw new NotFoundException('Source media not found');
     }
 
-    const url1 = await this.storageService.generatePresignedDownloadUrl(media1.privateOriginalKey);
-    const url2 = await this.storageService.generatePresignedDownloadUrl(media2.privateOriginalKey);
+    const url1 = await this.storageService.generatePresignedDownloadUrl(
+      media1.privateOriginalKey,
+    );
+    const url2 = await this.storageService.generatePresignedDownloadUrl(
+      media2.privateOriginalKey,
+    );
 
     return {
       similarityScore: evidence.similarityScore,

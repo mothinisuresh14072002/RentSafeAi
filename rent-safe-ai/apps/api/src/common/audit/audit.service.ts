@@ -21,7 +21,9 @@ export class AuditService {
     // Determine if reason is mandatory based on action
     const requiresReason = this.actionRequiresReason(dto.action);
     if (requiresReason && !dto.reason) {
-      throw new BadRequestException(`A valid reason is required for action: ${dto.action}`);
+      throw new BadRequestException(
+        `A valid reason is required for action: ${dto.action}`,
+      );
     }
 
     return tx.auditLog.create({

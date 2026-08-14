@@ -60,40 +60,66 @@ describe('BankService', () => {
   describe('addBankAccount', () => {
     it('throws if profile not found', async () => {
       jest.spyOn(prisma.user, 'findUnique').mockResolvedValue(null);
-      await expect(service.addBankAccount('u1', { accountNumber: '123', ifsc: 'ABC' })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.addBankAccount('u1', { accountNumber: '123', ifsc: 'ABC' }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('adds VERIFIED account when exact match', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({ profile: { firstName: 'John', lastName: 'Doe' } } as any);
-      jest.spyOn(provider, 'verifyBankAccount').mockResolvedValue({ reference: 'ref', status: 'SUCCESS', beneficiaryName: 'John Doe' });
-      const createSpy = jest.spyOn(prisma.ownerBankAccount, 'create').mockResolvedValue({ id: 'acc1' } as any);
-      jest.spyOn(prisma.ownerBankAccount, 'updateMany').mockResolvedValue({} as any);
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({
+        profile: { firstName: 'John', lastName: 'Doe' },
+      } as any);
+      jest.spyOn(provider, 'verifyBankAccount').mockResolvedValue({
+        reference: 'ref',
+        status: 'SUCCESS',
+        beneficiaryName: 'John Doe',
+      });
+      const createSpy = jest
+        .spyOn(prisma.ownerBankAccount, 'create')
+        .mockResolvedValue({ id: 'acc1' } as any);
+      jest
+        .spyOn(prisma.ownerBankAccount, 'updateMany')
+        .mockResolvedValue({} as any);
 
       await service.addBankAccount('u1', { accountNumber: '123', ifsc: 'ABC' });
 
-      expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          status: VerificationStatus.VERIFIED,
-          isPrimary: true,
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: VerificationStatus.VERIFIED,
+            isPrimary: true,
+          }),
         }),
-      }));
+      );
       expect(audit.log).toHaveBeenCalled();
     });
 
     it('adds NEEDS_REVIEW account on name mismatch', async () => {
-      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({ profile: { firstName: 'John', lastName: 'Doe' } } as any);
-      jest.spyOn(provider, 'verifyBankAccount').mockResolvedValue({ reference: 'ref', status: 'SUCCESS', beneficiaryName: 'Jane Doe' });
-      const createSpy = jest.spyOn(prisma.ownerBankAccount, 'create').mockResolvedValue({ id: 'acc1' } as any);
-      jest.spyOn(prisma.ownerBankAccount, 'updateMany').mockResolvedValue({} as any);
+      jest.spyOn(prisma.user, 'findUnique').mockResolvedValue({
+        profile: { firstName: 'John', lastName: 'Doe' },
+      } as any);
+      jest.spyOn(provider, 'verifyBankAccount').mockResolvedValue({
+        reference: 'ref',
+        status: 'SUCCESS',
+        beneficiaryName: 'Jane Doe',
+      });
+      const createSpy = jest
+        .spyOn(prisma.ownerBankAccount, 'create')
+        .mockResolvedValue({ id: 'acc1' } as any);
+      jest
+        .spyOn(prisma.ownerBankAccount, 'updateMany')
+        .mockResolvedValue({} as any);
 
       await service.addBankAccount('u1', { accountNumber: '123', ifsc: 'ABC' });
 
-      expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          status: VerificationStatus.NEEDS_REVIEW,
-          reviewerDecision: 'NAME_MISMATCH',
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: VerificationStatus.NEEDS_REVIEW,
+            reviewerDecision: 'NAME_MISMATCH',
+          }),
         }),
-      }));
+      );
       // Should not log the VERIFIED event
       expect(audit.log).not.toHaveBeenCalled();
     });
@@ -101,21 +127,36 @@ describe('BankService', () => {
 
   describe('submitReviewerDecision', () => {
     it('allows reviewer to manually approve mismatch', async () => {
-      jest.spyOn(prisma.ownerBankAccount, 'findUnique').mockResolvedValue({ id: 'acc1', status: VerificationStatus.NEEDS_REVIEW } as any);
-      const updateSpy = jest.spyOn(prisma.ownerBankAccount, 'update').mockResolvedValue({} as any);
+      jest.spyOn(prisma.ownerBankAccount, 'findUnique').mockResolvedValue({
+        id: 'acc1',
+        status: VerificationStatus.NEEDS_REVIEW,
+      } as any);
+      const updateSpy = jest
+        .spyOn(prisma.ownerBankAccount, 'update')
+        .mockResolvedValue({} as any);
 
-      await service.submitReviewerDecision('acc1', 'rev1', 'APPROVED', 'Looks like a typo');
+      await service.submitReviewerDecision(
+        'acc1',
+        'rev1',
+        'APPROVED',
+        'Looks like a typo',
+      );
 
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          status: VerificationStatus.VERIFIED,
-          reviewerDecision: 'MANUAL_APPROVED',
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: VerificationStatus.VERIFIED,
+            reviewerDecision: 'MANUAL_APPROVED',
+          }),
         }),
-      }));
-      expect(audit.log).toHaveBeenCalledWith(prisma, expect.objectContaining({
-        action: 'BANK_ACCOUNT_VERIFIED',
-        reason: 'Looks like a typo',
-      }));
+      );
+      expect(audit.log).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({
+          action: 'BANK_ACCOUNT_VERIFIED',
+          reason: 'Looks like a typo',
+        }),
+      );
     });
   });
 });

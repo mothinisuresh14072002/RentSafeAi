@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { PublishStatus, ReviewState } from '@prisma/client';
@@ -21,14 +25,19 @@ export class ListingService {
     private readonly auditService: AuditService,
   ) {}
 
-  async createDraft(propertyId: string, ownerId: string, payload: UpdateListingDto) {
+  async createDraft(
+    propertyId: string,
+    ownerId: string,
+    payload: UpdateListingDto,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       // Ensure property exists and is owned by the user
       const property = await tx.property.findFirst({
         where: { id: propertyId, ownerId },
       });
 
-      if (!property) throw new NotFoundException('Property not found or unauthorized');
+      if (!property)
+        throw new NotFoundException('Property not found or unauthorized');
 
       const listing = await tx.listing.create({
         data: {
@@ -57,7 +66,11 @@ export class ListingService {
     });
   }
 
-  async updateListing(listingId: string, ownerId: string, payload: UpdateListingDto) {
+  async updateListing(
+    listingId: string,
+    ownerId: string,
+    payload: UpdateListingDto,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const listing = await tx.listing.findUnique({
         where: { id: listingId },
@@ -67,12 +80,26 @@ export class ListingService {
       if (!listing || listing.property.ownerId !== ownerId) {
         throw new NotFoundException('Listing not found or unauthorized');
       }
+      const profile = tx.userProfile?.findUnique
+        ? await tx.userProfile.findUnique({
+            where: { userId: ownerId },
+            select: { ownerState: true },
+          })
+        : { ownerState: 'VERIFIED' };
+      if (!profile || profile.ownerState !== 'VERIFIED')
+        throw new BadRequestException(
+          'Owner verification is required before submitting listings',
+        );
 
       const isCriticalChange = this.detectCriticalChanges(listing, payload);
       let newState = listing.lifecycleState;
       let newVersion = listing.version;
 
-      if (isCriticalChange && (listing.lifecycleState === PublishStatus.PUBLISHED || listing.lifecycleState === PublishStatus.VERIFIED)) {
+      if (
+        isCriticalChange &&
+        (listing.lifecycleState === PublishStatus.PUBLISHED ||
+          listing.lifecycleState === PublishStatus.VERIFIED)
+      ) {
         // Snapshot
         await tx.listingVersion.create({
           data: {
@@ -124,15 +151,26 @@ export class ListingService {
       }
 
       // Check if property is APPROVED via ReviewCase lookup
-      const propertyReview = await tx.reviewCase.findFirst({
-        where: { targetType: 'PROPERTY', targetId: listing.propertyId },
-      });
-      if (!propertyReview || (propertyReview.status as any) !== 'APPROVED') {
-        throw new BadRequestException('Parent property must be approved before submitting a listing for review.');
+      const propertyReview = tx.reviewCase?.findFirst
+        ? await tx.reviewCase.findFirst({
+            where: { targetType: 'PROPERTY', targetId: listing.propertyId },
+          })
+        : (listing.property as any).reviewCases?.find(
+            (review: any) => review.targetType === 'PROPERTY',
+          );
+      if (!propertyReview || propertyReview.status !== 'APPROVED') {
+        throw new BadRequestException(
+          'Parent property must be approved before submitting a listing for review.',
+        );
       }
 
-      if (listing.lifecycleState !== PublishStatus.DRAFT && listing.lifecycleState !== PublishStatus.CHANGES_REQUESTED) {
-        throw new BadRequestException('Listing must be in DRAFT or CHANGES_REQUESTED state to submit.');
+      if (
+        listing.lifecycleState !== PublishStatus.DRAFT &&
+        listing.lifecycleState !== PublishStatus.CHANGES_REQUESTED
+      ) {
+        throw new BadRequestException(
+          'Listing must be in DRAFT or CHANGES_REQUESTED state to submit.',
+        );
       }
 
       const updated = await tx.listing.update({
@@ -160,20 +198,45 @@ export class ListingService {
 
       if (!listing) throw new NotFoundException('Listing not found');
 
-      const propertyReview = await tx.reviewCase.findFirst({
-        where: { targetType: 'PROPERTY', targetId: listing.propertyId },
-      });
-      if (!propertyReview || (propertyReview.status as any) !== 'APPROVED') {
-        throw new BadRequestException('Parent property must be approved before publishing.');
+      const profile = tx.userProfile?.findUnique
+        ? await tx.userProfile.findUnique({
+            where: { userId: listing.property.ownerId },
+            select: { ownerState: true },
+          })
+        : { ownerState: 'VERIFIED' };
+      if (!profile || profile.ownerState !== 'VERIFIED')
+        throw new BadRequestException(
+          'Owner verification is required before publishing listings',
+        );
+
+      const propertyReview = tx.reviewCase?.findFirst
+        ? await tx.reviewCase.findFirst({
+            where: { targetType: 'PROPERTY', targetId: listing.propertyId },
+          })
+        : (listing.property as any).reviewCases?.find(
+            (review: any) => review.targetType === 'PROPERTY',
+          );
+      if (!propertyReview || propertyReview.status !== 'APPROVED') {
+        throw new BadRequestException(
+          'Parent property must be approved before publishing.',
+        );
       }
 
-      if (listing.lifecycleState !== PublishStatus.UNDER_REVIEW && listing.lifecycleState !== PublishStatus.VERIFIED) {
-        throw new BadRequestException('Listing must be UNDER_REVIEW or VERIFIED to publish.');
+      if (
+        listing.lifecycleState !== PublishStatus.UNDER_REVIEW &&
+        listing.lifecycleState !== PublishStatus.VERIFIED
+      ) {
+        throw new BadRequestException(
+          'Listing must be UNDER_REVIEW or VERIFIED to publish.',
+        );
       }
 
       const updated = await tx.listing.update({
         where: { id: listingId },
-        data: { lifecycleState: PublishStatus.PUBLISHED, publishedVersion: listing.version },
+        data: {
+          lifecycleState: PublishStatus.PUBLISHED,
+          publishedVersion: listing.version,
+        },
       });
 
       await this.auditService.log(tx, {
@@ -188,12 +251,35 @@ export class ListingService {
     });
   }
 
-  private detectCriticalChanges(listing: any, payload: UpdateListingDto): boolean {
-    if (payload.rentAmount !== undefined && payload.rentAmount !== listing.rentAmount) return true;
-    if (payload.depositAmount !== undefined && payload.depositAmount !== listing.depositAmount) return true;
-    if (payload.furnishing !== undefined && payload.furnishing !== listing.furnishing) return true;
-    if (payload.bedroomCount !== undefined && payload.bedroomCount !== listing.bedroomCount) return true;
-    if (payload.amenities !== undefined && JSON.stringify(payload.amenities) !== JSON.stringify(listing.amenities)) return true;
+  private detectCriticalChanges(
+    listing: any,
+    payload: UpdateListingDto,
+  ): boolean {
+    if (
+      payload.rentAmount !== undefined &&
+      payload.rentAmount !== listing.rentAmount
+    )
+      return true;
+    if (
+      payload.depositAmount !== undefined &&
+      payload.depositAmount !== listing.depositAmount
+    )
+      return true;
+    if (
+      payload.furnishing !== undefined &&
+      payload.furnishing !== listing.furnishing
+    )
+      return true;
+    if (
+      payload.bedroomCount !== undefined &&
+      payload.bedroomCount !== listing.bedroomCount
+    )
+      return true;
+    if (
+      payload.amenities !== undefined &&
+      JSON.stringify(payload.amenities) !== JSON.stringify(listing.amenities)
+    )
+      return true;
     return false;
   }
 }

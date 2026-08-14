@@ -25,7 +25,9 @@ describe('SearchService', () => {
         {
           provide: StorageService,
           useValue: {
-            generatePresignedDownloadUrl: jest.fn().mockResolvedValue('http://signed.url'),
+            generatePresignedDownloadUrl: jest
+              .fn()
+              .mockResolvedValue('http://signed.url'),
           },
         },
       ],
@@ -44,24 +46,31 @@ describe('SearchService', () => {
         media: [],
       };
 
-      jest.spyOn(prisma.listing, 'findMany').mockResolvedValue([mockListing] as any);
+      jest
+        .spyOn(prisma.listing, 'findMany')
+        .mockResolvedValue([mockListing] as any);
       jest.spyOn(prisma.listing, 'count').mockResolvedValue(1);
 
-      const result = await service.searchListings({ minRent: 10000, locality: 'Adyar' }, {});
+      const result = await service.searchListings(
+        { minRent: 10000, locality: 'Adyar' },
+        {},
+      );
 
-      expect(prisma.listing.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: expect.objectContaining({
-          lifecycleState: PublishStatus.PUBLISHED,
-          rentAmount: { gte: 10000 },
-          property: expect.objectContaining({
-            AND: expect.arrayContaining([{ locality: 'Adyar' }]),
+      expect(prisma.listing.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            lifecycleState: PublishStatus.PUBLISHED,
+            rentAmount: { gte: 10000 },
+            property: expect.objectContaining({
+              AND: expect.arrayContaining([{ locality: 'Adyar' }]),
+            }),
           }),
         }),
-      }));
+      );
 
       expect(result.data.length).toBe(1);
       expect(result.data[0].property.locality).toBe('Adyar');
-      expect((result.data[0].property as any).doorNumber).toBeUndefined(); // Obfuscated
+      expect(result.data[0].property.doorNumber).toBeUndefined(); // Obfuscated
     });
   });
 
@@ -73,13 +82,19 @@ describe('SearchService', () => {
         property: {
           type: 'APARTMENT',
           verifications: [
-            { checkType: 'IDENTITY_KYC', status: VerificationStatus.VERIFIED, completedAt: new Date() },
+            {
+              checkType: 'IDENTITY_KYC',
+              status: VerificationStatus.VERIFIED,
+              completedAt: new Date(),
+            },
           ],
         },
         media: [{ id: 'm1', publicDerivativeKey: 'key1' }],
       };
 
-      jest.spyOn(prisma.listing, 'findUnique').mockResolvedValue(mockListing as any);
+      jest
+        .spyOn(prisma.listing, 'findUnique')
+        .mockResolvedValue(mockListing as any);
 
       const result = await service.getPublicListing('1');
 

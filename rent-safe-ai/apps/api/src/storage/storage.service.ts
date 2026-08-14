@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 @Injectable()
@@ -21,7 +25,10 @@ export class StorageService {
     this.bucketName = process.env.MINIO_BUCKET || 'rentsafe-private';
   }
 
-  async generatePresignedUploadUrl(objectKey: string, mimeType: string): Promise<string> {
+  async generatePresignedUploadUrl(
+    objectKey: string,
+    mimeType: string,
+  ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: objectKey,

@@ -55,19 +55,25 @@ describe('ListingService', () => {
         property: { ownerId: 'owner1' },
       } as any);
 
-      const updateSpy = jest.spyOn(prisma.listing, 'update').mockResolvedValue({} as any);
-      const versionSpy = jest.spyOn(prisma.listingVersion, 'create').mockResolvedValue({} as any);
+      const updateSpy = jest
+        .spyOn(prisma.listing, 'update')
+        .mockResolvedValue({} as any);
+      const versionSpy = jest
+        .spyOn(prisma.listingVersion, 'create')
+        .mockResolvedValue({} as any);
 
       await service.updateListing('list1', 'owner1', { rentAmount: 2000 });
 
       expect(versionSpy).toHaveBeenCalled();
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          lifecycleState: PublishStatus.UNDER_REVIEW,
-          rentAmount: 2000,
-          version: 2,
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lifecycleState: PublishStatus.UNDER_REVIEW,
+            rentAmount: 2000,
+            version: 2,
+          }),
         }),
-      }));
+      );
     });
 
     it('updates normally if state is DRAFT without versioning', async () => {
@@ -79,19 +85,23 @@ describe('ListingService', () => {
         property: { ownerId: 'owner1' },
       } as any);
 
-      const updateSpy = jest.spyOn(prisma.listing, 'update').mockResolvedValue({} as any);
+      const updateSpy = jest
+        .spyOn(prisma.listing, 'update')
+        .mockResolvedValue({} as any);
       const versionSpy = jest.spyOn(prisma.listingVersion, 'create');
 
       await service.updateListing('list1', 'owner1', { rentAmount: 2000 });
 
       expect(versionSpy).not.toHaveBeenCalled();
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          lifecycleState: PublishStatus.DRAFT,
-          rentAmount: 2000,
-          version: 1,
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lifecycleState: PublishStatus.DRAFT,
+            rentAmount: 2000,
+            version: 1,
+          }),
         }),
-      }));
+      );
     });
   });
 
@@ -102,11 +112,15 @@ describe('ListingService', () => {
         lifecycleState: PublishStatus.DRAFT,
         property: {
           ownerId: 'owner1',
-          reviewCases: [{ targetType: 'PROPERTY', status: ReviewState.PENDING }],
+          reviewCases: [
+            { targetType: 'PROPERTY', status: ReviewState.PENDING },
+          ],
         },
       } as any);
 
-      await expect(service.submitForReview('list1', 'owner1')).rejects.toThrow(BadRequestException);
+      await expect(service.submitForReview('list1', 'owner1')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('submits successfully if property is approved', async () => {
@@ -115,17 +129,23 @@ describe('ListingService', () => {
         lifecycleState: PublishStatus.DRAFT,
         property: {
           ownerId: 'owner1',
-          reviewCases: [{ targetType: 'PROPERTY', status: ReviewState.APPROVED }],
+          reviewCases: [
+            { targetType: 'PROPERTY', status: ReviewState.APPROVED },
+          ],
         },
       } as any);
 
-      const updateSpy = jest.spyOn(prisma.listing, 'update').mockResolvedValue({} as any);
+      const updateSpy = jest
+        .spyOn(prisma.listing, 'update')
+        .mockResolvedValue({} as any);
 
       await service.submitForReview('list1', 'owner1');
 
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: { lifecycleState: PublishStatus.UNDER_REVIEW },
-      }));
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { lifecycleState: PublishStatus.UNDER_REVIEW },
+        }),
+      );
     });
   });
 
@@ -137,17 +157,26 @@ describe('ListingService', () => {
         version: 1,
         property: {
           ownerId: 'owner1',
-          reviewCases: [{ targetType: 'PROPERTY', status: ReviewState.APPROVED }],
+          reviewCases: [
+            { targetType: 'PROPERTY', status: ReviewState.APPROVED },
+          ],
         },
       } as any);
 
-      const updateSpy = jest.spyOn(prisma.listing, 'update').mockResolvedValue({} as any);
+      const updateSpy = jest
+        .spyOn(prisma.listing, 'update')
+        .mockResolvedValue({} as any);
 
       await service.publish('list1', 'reviewer1', 'OK');
 
-      expect(updateSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: { lifecycleState: PublishStatus.PUBLISHED, publishedVersion: 1 },
-      }));
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            lifecycleState: PublishStatus.PUBLISHED,
+            publishedVersion: 1,
+          },
+        }),
+      );
     });
   });
 });

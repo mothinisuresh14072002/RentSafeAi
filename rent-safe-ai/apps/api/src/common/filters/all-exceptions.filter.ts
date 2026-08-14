@@ -1,4 +1,11 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 
 @Catch()
@@ -26,7 +33,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       success: false,
       error: {
         code: httpStatus,
-        message: typeof message === 'string' ? message : (message as any).message || message,
+        message:
+          typeof message === 'string'
+            ? message
+            : (message as any).message || message,
         timestamp: new Date().toISOString(),
         path: httpAdapter.getRequestUrl(request),
         correlationId: request.id,

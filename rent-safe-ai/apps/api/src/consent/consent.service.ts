@@ -25,7 +25,9 @@ export class ConsentService {
     });
 
     if (!consent) {
-      throw new BadRequestException('Active consent not found for this purpose');
+      throw new BadRequestException(
+        'Active consent not found for this purpose',
+      );
     }
 
     return this.prisma.consent.update({

@@ -34,7 +34,9 @@ describe('PropertyService', () => {
         {
           provide: SandboxGeocodingProvider,
           useValue: {
-            geocodeAddress: jest.fn().mockResolvedValue({ latitude: 13.0, longitude: 80.0 }),
+            geocodeAddress: jest
+              .fn()
+              .mockResolvedValue({ latitude: 13.0, longitude: 80.0 }),
           },
         },
         {
@@ -71,35 +73,47 @@ describe('PropertyService', () => {
 
   describe('registerProperty', () => {
     it('throws if PIN code is invalid', async () => {
-      await expect(service.registerProperty('u1', {
-        propertyType: PropertyType.APARTMENT,
-        address: { ...validAddress, pinCode: '500001' },
-        identifiers: [],
-      })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.registerProperty('u1', {
+          propertyType: PropertyType.APARTMENT,
+          address: { ...validAddress, pinCode: '500001' },
+          identifiers: [],
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws if locality is not supported', async () => {
-      await expect(service.registerProperty('u1', {
-        propertyType: PropertyType.APARTMENT,
-        address: { ...validAddress, locality: 'Bangalore' },
-        identifiers: [],
-      })).rejects.toThrow(BadRequestException);
+      await expect(
+        service.registerProperty('u1', {
+          propertyType: PropertyType.APARTMENT,
+          address: { ...validAddress, locality: 'Bangalore' },
+          identifiers: [],
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws Conflict if exact address hash exists', async () => {
-      jest.spyOn(prisma.property, 'findUnique').mockResolvedValue({ id: 'p1' } as any);
-      
-      await expect(service.registerProperty('u1', {
-        propertyType: PropertyType.APARTMENT,
-        address: validAddress,
-        identifiers: [],
-      })).rejects.toThrow(ConflictException);
+      jest
+        .spyOn(prisma.property, 'findUnique')
+        .mockResolvedValue({ id: 'p1' } as any);
+
+      await expect(
+        service.registerProperty('u1', {
+          propertyType: PropertyType.APARTMENT,
+          address: validAddress,
+          identifiers: [],
+        }),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('registers property and identifiers correctly', async () => {
       jest.spyOn(prisma.property, 'findUnique').mockResolvedValue(null);
-      const createPropSpy = jest.spyOn(prisma.property, 'create').mockResolvedValue({ id: 'p1' } as any);
-      const createIdfSpy = jest.spyOn(prisma.propertyIdentifier, 'create').mockResolvedValue({} as any);
+      const createPropSpy = jest
+        .spyOn(prisma.property, 'create')
+        .mockResolvedValue({ id: 'p1' } as any);
+      const createIdfSpy = jest
+        .spyOn(prisma.propertyIdentifier, 'create')
+        .mockResolvedValue({} as any);
 
       await service.registerProperty('u1', {
         propertyType: PropertyType.APARTMENT,
@@ -109,25 +123,32 @@ describe('PropertyService', () => {
 
       expect(policies.canSubmitProperty).toHaveBeenCalledWith('u1');
       expect(provider.geocodeAddress).toHaveBeenCalled();
-      
-      expect(createPropSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          chennaiLocality: 'ADYAR',
-          propertyType: PropertyType.APARTMENT,
-          latitude: 13.0,
-        }),
-      }));
 
-      expect(createIdfSpy).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          identifierType: 'SURVEY_NUMBER',
-          propertyId: 'p1',
+      expect(createPropSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            chennaiLocality: 'ADYAR',
+            propertyType: PropertyType.APARTMENT,
+            latitude: 13.0,
+          }),
         }),
-      }));
+      );
 
-      expect(audit.log).toHaveBeenCalledWith(prisma, expect.objectContaining({
-        action: 'PROPERTY_REGISTERED',
-      }));
+      expect(createIdfSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            identifierType: 'SURVEY_NUMBER',
+            propertyId: 'p1',
+          }),
+        }),
+      );
+
+      expect(audit.log).toHaveBeenCalledWith(
+        prisma,
+        expect.objectContaining({
+          action: 'PROPERTY_REGISTERED',
+        }),
+      );
     });
   });
 });

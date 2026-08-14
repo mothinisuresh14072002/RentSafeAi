@@ -1,0 +1,42 @@
+import { PrismaClient, Role, PublishStatus, PropertyType, ReviewState, VerificationStatus, ContactStatus, ViewingStatus, AgreementStatus, PaymentStatus, SignalSeverity, SignalStatus, ReportStatus, PaymentHoldStatus } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
+const prisma = new PrismaClient();
+const ids = { tenant: '00000000-0000-4000-8000-000000000001', owner: '00000000-0000-4000-8000-000000000002', reviewer: '00000000-0000-4000-8000-000000000003', admin: '00000000-0000-4000-8000-000000000004', verifiedProperty: '10000000-0000-4000-8000-000000000001', reviewProperty: '10000000-0000-4000-8000-000000000002', duplicateProperty: '10000000-0000-4000-8000-000000000003', verifiedListing: '20000000-0000-4000-8000-000000000001', reviewListing: '20000000-0000-4000-8000-000000000002', duplicateListing: '20000000-0000-4000-8000-000000000003', verifiedAgreement: '30000000-0000-4000-8000-000000000001', blockedAgreement: '30000000-0000-4000-8000-000000000002', eligiblePayment: '40000000-0000-4000-8000-000000000001', blockedPayment: '40000000-0000-4000-8000-000000000002', contact: '50000000-0000-4000-8000-000000000001', viewing: '60000000-0000-4000-8000-000000000001', report: '70000000-0000-4000-8000-000000000001', signal: '80000000-0000-4000-8000-000000000001', hold: '90000000-0000-4000-8000-000000000001' };
+const password = bcrypt.hashSync('RentSafeDemo!2026', 10);
+const address = (line: string) => ({ line1: line, city: 'Chennai', state: 'Tamil Nadu', postalCode: '600028', country: 'IN' });
+
+async function user(id: string, email: string, role: Role, displayName: string, phone: string) {
+  const value = await prisma.user.upsert({ where: { id }, update: { email, role, hashedPassword: password, phone, isEmailVerified: true, isPhoneVerified: true, status: 'ACTIVE' }, create: { id, email, role, hashedPassword: password, phone, isEmailVerified: true, isPhoneVerified: true } });
+  await prisma.userProfile.upsert({ where: { userId: id }, update: { displayName }, create: { userId: id, displayName, firstName: displayName.split(' ')[0], ownerState: role === Role.OWNER ? 'VERIFIED' : 'PROFILE_PENDING' } });
+  await prisma.notificationPreference.upsert({ where: { userId: id }, update: {}, create: { userId: id } });
+  return value;
+}
+
+async function main() {
+  await user(ids.tenant, 'demo.tenant@rentsafe.test', Role.TENANT, 'Demo Tenant', '+919900000001');
+  await user(ids.owner, 'demo.owner@rentsafe.test', Role.OWNER, 'Demo Owner', '+919900000002');
+  await user(ids.reviewer, 'demo.reviewer@rentsafe.test', Role.REVIEWER, 'Demo Reviewer', '+919900000003');
+  await user(ids.admin, 'demo.admin@rentsafe.test', Role.ADMIN, 'Demo Admin', '+919900000004');
+  await prisma.ownerKycCase.upsert({ where: { providerReference: 'demo-kyc-verified' }, update: { status: VerificationStatus.VERIFIED, expiryDate: new Date('2027-12-31') }, create: { userId: ids.owner, provider: 'SANDBOX', providerReference: 'demo-kyc-verified', status: VerificationStatus.VERIFIED, normalizedName: 'Demo Owner', expiryDate: new Date('2027-12-31') } });
+
+  for (const [id, line, status] of [[ids.verifiedProperty, '12 Verified Marina Road', 'ACTIVE'], [ids.reviewProperty, '18 Review Adyar Road', 'ACTIVE'], [ids.duplicateProperty, '22 Duplicate Besant Nagar Road', 'ACTIVE']] as const) {
+    await prisma.property.upsert({ where: { id }, update: { structuredAddress: address(line), status }, create: { id, ownerId: ids.owner, propertyType: PropertyType.APARTMENT, structuredAddress: address(line), chennaiLocality: 'Adyar', normalizedAddressHash: `demo-${id}` , status } });
+  }
+  const listings = [[ids.verifiedListing, ids.verifiedProperty, PublishStatus.PUBLISHED, 'Verified listing'], [ids.reviewListing, ids.reviewProperty, PublishStatus.UNDER_REVIEW, 'Listing under review'], [ids.duplicateListing, ids.duplicateProperty, PublishStatus.REJECTED, 'Rejected duplicate listing']] as const;
+  for (const [id, propertyId, lifecycleState, description] of listings) await prisma.listing.upsert({ where: { id }, update: { lifecycleState, description }, create: { id, propertyId, rentAmount: 3500000, depositAmount: 10500000, furnishing: 'SEMI_FURNISHED', bedroomCount: 2, amenities: ['parking', 'security'], availability: new Date('2026-09-01'), description, lifecycleState } });
+  await prisma.reviewCase.upsert({ where: { id: 'a0000000-0000-4000-8000-000000000001' }, update: { status: ReviewState.PENDING }, create: { id: 'a0000000-0000-4000-8000-000000000001', targetType: 'PROPERTY', targetId: ids.reviewProperty, status: ReviewState.PENDING } });
+  await prisma.propertyVerification.upsert({ where: { id: 'a1000000-0000-4000-8000-000000000001' }, update: { status: VerificationStatus.VERIFIED }, create: { id: 'a1000000-0000-4000-8000-000000000001', propertyId: ids.verifiedProperty, checkType: 'OWNERSHIP', status: VerificationStatus.VERIFIED, completedAt: new Date() } });
+  await prisma.ownerBankAccount.upsert({ where: { id: 'a2000000-0000-4000-8000-000000000001' }, update: { status: VerificationStatus.VERIFIED, isPrimary: true }, create: { id: 'a2000000-0000-4000-8000-000000000001', userId: ids.owner, encryptedToken: 'demo-encrypted-token', maskedAccount: '****0001', beneficiaryResult: 'Demo Owner', status: VerificationStatus.VERIFIED, isPrimary: true } });
+  await prisma.riskSignal.upsert({ where: { id: ids.signal }, update: { status: SignalStatus.ACTIVE }, create: { id: ids.signal, ruleCode: 'DUPLICATE_IMAGE', severity: SignalSeverity.HIGH, entityType: 'LISTING', entityId: ids.duplicateListing, evidenceJson: { matchedListingId: ids.verifiedListing, similarity: 0.98 }, status: SignalStatus.ACTIVE } });
+  await prisma.fraudReport.upsert({ where: { id: ids.report }, update: { status: ReportStatus.OPEN }, create: { id: ids.report, reporterId: ids.tenant, subjectType: 'LISTING', subjectId: ids.duplicateListing, category: 'FAKE_LISTING', narrative: 'This demo listing intentionally represents a reportable duplicate listing for review.', severity: SignalSeverity.HIGH, status: ReportStatus.OPEN } });
+  await prisma.contactRequest.upsert({ where: { id: ids.contact }, update: { status: ContactStatus.APPROVED }, create: { id: ids.contact, tenantId: ids.tenant, listingId: ids.verifiedListing, status: ContactStatus.APPROVED, consentTimestamp: new Date(), disclosureTimestamp: new Date() } });
+  await prisma.viewingRequest.upsert({ where: { id: ids.viewing }, update: { status: ViewingStatus.COMPLETED }, create: { id: ids.viewing, tenantId: ids.tenant, listingId: ids.verifiedListing, schedule: new Date('2026-09-15T10:00:00+05:30'), status: ViewingStatus.COMPLETED, tenantConfirmedAt: new Date(), ownerConfirmedAt: new Date() } });
+  await prisma.agreement.upsert({ where: { id: ids.verifiedAgreement }, update: { status: AgreementStatus.SIGNED }, create: { id: ids.verifiedAgreement, listingId: ids.verifiedListing, tenantId: ids.tenant, ownerId: ids.owner, documentKey: 'demo/verified-agreement.pdf', status: AgreementStatus.SIGNED } });
+  await prisma.agreement.upsert({ where: { id: ids.blockedAgreement }, update: { status: AgreementStatus.SIGNED }, create: { id: ids.blockedAgreement, listingId: ids.duplicateListing, tenantId: ids.tenant, ownerId: ids.owner, documentKey: 'demo/blocked-agreement.pdf', status: AgreementStatus.SIGNED } });
+  await prisma.paymentOrder.upsert({ where: { id: ids.eligiblePayment }, update: { status: PaymentStatus.CREATED }, create: { id: ids.eligiblePayment, tenantId: ids.tenant, listingId: ids.verifiedListing, agreementId: ids.verifiedAgreement, amount: 3500000, idempotencyKey: 'demo-eligible-payment', status: PaymentStatus.CREATED, eligibilitySnapshot: { eligible: true } } });
+  await prisma.paymentOrder.upsert({ where: { id: ids.blockedPayment }, update: { status: PaymentStatus.DISPUTED }, create: { id: ids.blockedPayment, tenantId: ids.tenant, listingId: ids.duplicateListing, agreementId: ids.blockedAgreement, amount: 3500000, idempotencyKey: 'demo-blocked-payment', status: PaymentStatus.DISPUTED, eligibilitySnapshot: { eligible: false, reason: 'FRAUD_HOLD' } } });
+  await prisma.paymentHold.upsert({ where: { id: ids.hold }, update: { status: PaymentHoldStatus.PENDING_REVIEW }, create: { id: ids.hold, ownerId: ids.owner, reportId: ids.report, paymentOrderId: ids.blockedPayment, reason: 'Demo fraud hold', status: PaymentHoldStatus.PENDING_REVIEW } });
+  console.log('RentSafe demo seed complete. Request OTP for a demo phone and use the code printed by LocalOtpProvider in the API logs.');
+}
+main().finally(() => prisma.$disconnect());

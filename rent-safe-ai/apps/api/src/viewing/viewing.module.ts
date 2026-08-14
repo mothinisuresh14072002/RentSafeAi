@@ -4,6 +4,7 @@ import { ViewingController } from './viewing.controller';
 import { PrismaModule } from '../common/prisma/prisma.module';
 import { AuditModule } from '../common/audit/audit.module';
 import { BullModule } from '@nestjs/bullmq';
+import { ViewingReminderProcessor } from './viewing-reminder.processor';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { BullModule } from '@nestjs/bullmq';
     AuditModule,
     BullModule.registerQueue({ name: 'viewing-reminders' }),
   ],
-  providers: [ViewingService],
+  providers: [ViewingService, ViewingReminderProcessor],
   controllers: [ViewingController],
   exports: [ViewingService],
 })

@@ -68,7 +68,11 @@ export class RiskService {
   }
 
   /** Resolve a risk signal with a reviewer explanation. */
-  async resolveSignal(signalId: string, reviewerId: string, resolution: string) {
+  async resolveSignal(
+    signalId: string,
+    reviewerId: string,
+    resolution: string,
+  ) {
     return this.prisma.riskSignal.update({
       where: { id: signalId },
       data: {

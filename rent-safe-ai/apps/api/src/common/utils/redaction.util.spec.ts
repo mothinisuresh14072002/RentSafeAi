@@ -8,7 +8,9 @@ describe('RedactionUtil', () => {
   });
 
   it('masks email', () => {
-    expect(RedactionUtil.maskEmail('john@example.com')).toBe('j***@example.com');
+    expect(RedactionUtil.maskEmail('john@example.com')).toBe(
+      'j***@example.com',
+    );
     expect(RedactionUtil.maskEmail('a@b.com')).toBe('*@b.com');
   });
 

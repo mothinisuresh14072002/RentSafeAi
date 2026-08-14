@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, UnauthorizedException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { LocalOtpProvider } from './providers/local-otp.provider';
@@ -18,7 +22,7 @@ export class AuthService {
     if (!phoneNumber || !phoneNumber.isValid()) {
       throw new BadRequestException('Invalid phone number format');
     }
-    return phoneNumber.number as string;
+    return phoneNumber.number;
   }
 
   private generateOtp(): string {
@@ -35,9 +39,12 @@ export class AuthService {
     });
 
     if (recentOtp) {
-      const secondsSinceLast = (Date.now() - recentOtp.createdAt.getTime()) / 1000;
+      const secondsSinceLast =
+        (Date.now() - recentOtp.createdAt.getTime()) / 1000;
       if (secondsSinceLast < 60) {
-        throw new BadRequestException(`Please wait ${Math.ceil(60 - secondsSinceLast)} seconds before requesting a new OTP.`);
+        throw new BadRequestException(
+          `Please wait ${Math.ceil(60 - secondsSinceLast)} seconds before requesting a new OTP.`,
+        );
       }
     }
 
@@ -69,7 +76,10 @@ export class AuthService {
     return { success: true };
   }
 
-  async verifyOtp(rawPhone: string, code: string): Promise<{ success: boolean; message: string }> {
+  async verifyOtp(
+    rawPhone: string,
+    code: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const phone = this.normalizePhone(rawPhone);
 
     const otpAttempt = await this.prisma.otpAttempt.findFirst({
@@ -78,7 +88,9 @@ export class AuthService {
     });
 
     if (!otpAttempt) {
-      throw new BadRequestException('No active OTP request found for this phone number');
+      throw new BadRequestException(
+        'No active OTP request found for this phone number',
+      );
     }
 
     if (otpAttempt.expiresAt < new Date()) {
@@ -86,7 +98,9 @@ export class AuthService {
     }
 
     if (otpAttempt.attempts >= 3) {
-      throw new BadRequestException('Maximum attempts exceeded. Please request a new OTP.');
+      throw new BadRequestException(
+        'Maximum attempts exceeded. Please request a new OTP.',
+      );
     }
 
     const isValid = await CryptoUtil.compare(code, otpAttempt.codeHash);
@@ -203,7 +217,9 @@ export class AuthService {
           entityId: familyId,
         },
       });
-      throw new UnauthorizedException('Refresh token reuse detected. Session revoked.');
+      throw new UnauthorizedException(
+        'Refresh token reuse detected. Session revoked.',
+      );
     }
 
     // Valid: rotate token

@@ -11,7 +11,10 @@ export class PropertyController {
   constructor(private readonly propertyService: PropertyService) {}
 
   @Post('register')
-  async registerProperty(@Request() req: any, @Body() dto: RegisterPropertyDto) {
+  async registerProperty(
+    @Request() req: any,
+    @Body() dto: RegisterPropertyDto,
+  ) {
     return this.propertyService.registerProperty(req.user.userId, dto);
   }
 }

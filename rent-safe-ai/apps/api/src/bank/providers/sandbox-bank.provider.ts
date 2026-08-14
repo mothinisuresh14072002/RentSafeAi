@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { BankVerificationProvider, BankVerificationResult } from './bank.provider';
+import {
+  BankVerificationProvider,
+  BankVerificationResult,
+} from './bank.provider';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -7,7 +10,7 @@ export class SandboxBankProvider implements BankVerificationProvider {
   async verifyBankAccount(accountData: any): Promise<BankVerificationResult> {
     const reference = `bank_sbx_${crypto.randomBytes(8).toString('hex')}`;
     const accountNo = accountData.accountNumber || '';
-    
+
     let status: 'SUCCESS' | 'FAILED' = 'SUCCESS';
     let beneficiaryName = accountData.expectedName || 'John Doe';
 
@@ -19,7 +22,7 @@ export class SandboxBankProvider implements BankVerificationProvider {
     }
 
     // Simulate async network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     return {
       reference,

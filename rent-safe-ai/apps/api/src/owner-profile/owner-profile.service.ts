@@ -19,7 +19,7 @@ export class OwnerProfileService {
   async upsertProfile(userId: string, dto: UpsertProfileDto) {
     return this.prisma.$transaction(async (tx) => {
       let profile = await tx.userProfile.findUnique({ where: { userId } });
-      
+
       if (profile) {
         profile = await tx.userProfile.update({
           where: { userId },
@@ -45,7 +45,10 @@ export class OwnerProfileService {
       }
 
       // If they drafted a profile and phone/email is verified, we can move them to KYC_PENDING
-      if (profile.ownerState === OwnerState.PROFILE_PENDING && user?.isPhoneVerified) {
+      if (
+        profile.ownerState === OwnerState.PROFILE_PENDING &&
+        user?.isPhoneVerified
+      ) {
         profile = await tx.userProfile.update({
           where: { userId },
           data: { ownerState: OwnerState.KYC_PENDING },
@@ -78,7 +81,12 @@ export class OwnerProfileService {
     };
   }
 
-  async transitionState(userId: string, toState: OwnerState, reason?: string, actorId?: string) {
+  async transitionState(
+    userId: string,
+    toState: OwnerState,
+    reason?: string,
+    actorId?: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const profile = await tx.userProfile.findUnique({ where: { userId } });
       if (!profile) throw new BadRequestException('Profile not found');
@@ -94,8 +102,11 @@ export class OwnerProfileService {
       const actualActor = actorId || 'SYSTEM';
 
       if ((restrictedStates as string[]).includes(toState)) {
-        if (!reason) throw new BadRequestException(`Transition to ${toState} requires a reason.`);
-        
+        if (!reason)
+          throw new BadRequestException(
+            `Transition to ${toState} requires a reason.`,
+          );
+
         await this.auditService.log(tx, {
           actorId: actualActor,
           action: `OWNER_STATE_${toState}`,

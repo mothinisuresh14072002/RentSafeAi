@@ -6,6 +6,11 @@ export interface ProviderOrder {
 }
 
 export interface PaymentProvider {
-  createOrder(input: { orderId: string; amount: number; currency: string; idempotencyKey: string }): Promise<ProviderOrder>;
+  createOrder(input: {
+    orderId: string;
+    amount: number;
+    currency: string;
+    idempotencyKey: string;
+  }): Promise<ProviderOrder>;
   verifyWebhookSignature(payload: unknown, signature: string): boolean;
 }

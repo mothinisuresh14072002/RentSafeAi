@@ -1,7 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
-import { PrivacyRequestType, PrivacyRequestStatus, UserStatus } from '@prisma/client';
+import {
+  PrivacyRequestType,
+  PrivacyRequestStatus,
+  UserStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class PrivacyService {

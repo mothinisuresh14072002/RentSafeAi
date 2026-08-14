@@ -1,4 +1,13 @@
-import { Controller, Get, Put, Body, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  UseGuards,
+  Request,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { OwnerProfileService } from './owner-profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';

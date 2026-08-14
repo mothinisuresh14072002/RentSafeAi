@@ -36,7 +36,10 @@ describe('AuditReasonGuard', () => {
 
   it('should allow if required and header provided', () => {
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
-    const req = { headers: { 'x-audit-reason': 'User request' }, auditReason: null };
+    const req = {
+      headers: { 'x-audit-reason': 'User request' },
+      auditReason: null,
+    };
     const context = {
       getHandler: jest.fn(),
       getClass: jest.fn(),

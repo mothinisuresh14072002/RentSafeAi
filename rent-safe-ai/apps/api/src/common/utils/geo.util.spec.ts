@@ -5,11 +5,11 @@ describe('GeoUtil', () => {
     // Chennai Central to Egmore is roughly 2km
     const lat1 = 13.0827;
     const lon1 = 80.2707;
-    const lat2 = 13.0780;
-    const lon2 = 80.2600;
-    
+    const lat2 = 13.078;
+    const lon2 = 80.26;
+
     const distance = GeoUtil.calculateDistance(lat1, lon1, lat2, lon2);
-    
+
     // Check if it's within 1-2 kilometers
     expect(distance).toBeGreaterThan(1000);
     expect(distance).toBeLessThan(2000);

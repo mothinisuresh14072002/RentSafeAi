@@ -5,7 +5,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { OwnerProfileService } from '../owner-profile/owner-profile.service';
 import { RedactionUtil } from '../common/utils/redaction.util';
 import { StringUtil } from '../common/utils/string.util';
-import { VerificationStatus, OwnerState } from '@prisma/client';
+import { VerificationStatus } from '@prisma/client';
 
 export interface AddBankAccountDto {
   accountNumber: string;
@@ -31,20 +31,27 @@ export class BankService {
       throw new BadRequestException('Owner profile not found');
     }
 
-    const expectedName = `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
-    
-    // In Sandbox, pass expectedName down to simulate the matching condition
-    const result = await this.provider.verifyBankAccount({ ...dto, expectedName });
+    const expectedName =
+      `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim();
 
-    let status = VerificationStatus.PENDING;
-    let reviewerDecision = null;
+    // In Sandbox, pass expectedName down to simulate the matching condition
+    const result = await this.provider.verifyBankAccount({
+      ...dto,
+      expectedName,
+    });
+
+    let status: VerificationStatus = VerificationStatus.PENDING;
+    let reviewerDecision: string | null = null;
 
     if (result.status === 'FAILED') {
       status = VerificationStatus.REJECTED;
       reviewerDecision = 'FAILED_BY_PROVIDER';
     } else {
       // Evaluate name match
-      const isMatch = StringUtil.compareNames(expectedName, result.beneficiaryName);
+      const isMatch = StringUtil.compareNames(
+        expectedName,
+        result.beneficiaryName,
+      );
       if (isMatch) {
         status = VerificationStatus.VERIFIED;
       } else {
@@ -60,8 +67,11 @@ export class BankService {
     });
 
     // Encrypt token (MVP logic: we store raw if it's sandbox, but conceptually encrypt it)
-    const encryptedToken = Buffer.from(`mock_enc_${dto.accountNumber}`).toString('base64');
-    const maskedAccount = RedactionUtil.maskBankAccount(dto.accountNumber) || '***';
+    const encryptedToken = Buffer.from(
+      `mock_enc_${dto.accountNumber}`,
+    ).toString('base64');
+    const maskedAccount =
+      RedactionUtil.maskBankAccount(dto.accountNumber) || '***';
 
     const account = await this.prisma.ownerBankAccount.create({
       data: {
@@ -119,21 +129,30 @@ export class BankService {
     });
   }
 
-  async submitReviewerDecision(accountId: string, reviewerId: string, decision: 'APPROVED' | 'REJECTED', reason: string) {
+  async submitReviewerDecision(
+    accountId: string,
+    reviewerId: string,
+    decision: 'APPROVED' | 'REJECTED',
+    reason: string,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      const account = await tx.ownerBankAccount.findUnique({ where: { id: accountId } });
+      const account = await tx.ownerBankAccount.findUnique({
+        where: { id: accountId },
+      });
       if (!account || account.status !== VerificationStatus.NEEDS_REVIEW) {
         throw new BadRequestException('Bank account not available for review');
       }
 
-      const newStatus = decision === 'APPROVED' ? VerificationStatus.VERIFIED : VerificationStatus.REJECTED;
+      const newStatus =
+        decision === 'APPROVED'
+          ? VerificationStatus.VERIFIED
+          : VerificationStatus.REJECTED;
 
       await tx.ownerBankAccount.update({
         where: { id: accountId },
         data: {
           status: newStatus,
           reviewerDecision: `MANUAL_${decision}`,
-          reviewedAt: new Date(),
         },
       });
 

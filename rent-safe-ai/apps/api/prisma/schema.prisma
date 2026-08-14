@@ -561,10 +561,16 @@ model OutboxEvent {
   eventType             String
   payload               Json
   processedAt           DateTime?
+  attempts              Int                 @default(0)
+  nextAttemptAt         DateTime             @default(now())
+  lastError             String?
+  lockedAt              DateTime?
+  deadLetteredAt        DateTime?
   
   createdAt             DateTime            @default(now())
 
-  @@index([processedAt])
+  @@index([processedAt, nextAttemptAt])
+  @@index([deadLetteredAt])
   @@map("outbox_events")
 }
 
@@ -574,11 +580,18 @@ model Notification {
   user                  User                @relation(fields: [userId], references: [id])
   title                 String
   body                  String
+  eventType             String?
+  deduplicationKey      String?
+  channel               NotificationChannel @default(IN_APP)
+  deliveryStatus        NotificationDeliveryStatus @default(PENDING)
+  deliveredAt           DateTime?
+  lastError             String?
   isRead                Boolean             @default(false)
   
   createdAt             DateTime            @default(now())
 
   @@map("notifications")
+  @@unique([userId, deduplicationKey])
 }
 
 model NotificationPreference {
@@ -759,6 +772,20 @@ enum PrivacyRequestStatus {
   PROCESSING
   COMPLETED
   REJECTED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
 }
 
 enum PropertyType {
