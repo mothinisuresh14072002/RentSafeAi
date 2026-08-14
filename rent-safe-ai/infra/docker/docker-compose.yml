@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -10,7 +8,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U rentsafe"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -63,8 +61,10 @@ services:
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
-      /usr/bin/mc mb local/rentsafe-docs || true;
-      /usr/bin/mc policy set public local/rentsafe-docs || true;
+      /usr/bin/mc mb local/private-originals || true;
+      /usr/bin/mc mb local/public-derivatives || true;
+      /usr/bin/mc mb local/temp-uploads || true;
+      /usr/bin/mc policy set public local/public-derivatives || true;
       exit 0;
       "
 

@@ -17,7 +17,7 @@ model User {
   email                 String              @unique
   hashedPassword        String
   phone                 String?             @unique
-  isActive              Boolean             @default(true)
+  status                UserStatus          @default(ACTIVE)
   isEmailVerified       Boolean             @default(false)
   isPhoneVerified       Boolean             @default(false)
   locale                String              @default("en-IN")
@@ -35,12 +35,50 @@ model User {
   consents              Consent[]
   notifications         Notification[]
   notificationPrefs     NotificationPreference?
+  sessions              Session[]
+  privacyRequests       PrivacyRequest[]
 
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   deletedAt             DateTime?           // Soft delete
 
+  @@index([email])
+  @@index([phone])
   @@map("users")
+}
+
+model Session {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  refreshTokenHash String
+  familyId  String
+  deviceId  String?
+  status    SessionStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+model OtpAttempt {
+  id        String   @id @default(uuid())
+  phone     String?
+  email     String?
+  codeHash  String
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+  @@index([email])
+  @@map("otp_attempts")
 }
 
 model UserProfile {
@@ -51,6 +89,7 @@ model UserProfile {
   firstName             String?
   lastName              String?
   avatarUrl             String?
+  ownerState            OwnerState          @default(PROFILE_PENDING)
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -66,6 +105,8 @@ model OwnerKycCase {
   providerReference     String              @unique
   status                VerificationStatus  @default(PENDING)
   maskedResult          Json?               // Store safe attributes like masked DOB, Name
+  normalizedName        String?
+  reviewerDecision      String?
   reviewedAt            DateTime?
   
   createdAt             DateTime            @default(now())
@@ -79,9 +120,12 @@ model OwnerBankAccount {
   userId                String
   user                  User                @relation(fields: [userId], references: [id])
   encryptedToken        String              // Envelope encrypted
+  providerReference     String?
   maskedAccount         String              // e.g., ****1234
   beneficiaryResult     String?             // Name returned by verification
   status                VerificationStatus  @default(PENDING)
+  isPrimary             Boolean             @default(false)
+  reviewerDecision      String?
   
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
@@ -97,6 +141,7 @@ model Property {
   id                    String              @id @default(uuid())
   ownerId               String
   owner                 User                @relation("PropertyOwner", fields: [ownerId], references: [id])
+  propertyType          PropertyType
   
   structuredAddress     Json
   chennaiLocality       String
@@ -108,6 +153,7 @@ model Property {
   identifiers           PropertyIdentifier[]
   documents             PropertyDocument[]
   verifications         PropertyVerification[]
+  challenges            PresenceChallenge[]
   listings              Listing[]
 
   createdAt             DateTime            @default(now())
@@ -136,7 +182,9 @@ model PropertyDocument {
   property              Property            @relation(fields: [propertyId], references: [id])
   documentType          DocumentType
   objectKey             String              // Private S3 key
+  mimeType              String              @default("application/pdf")
   checksum              String
+  quarantineStatus      QuarantineStatus    @default(PENDING_SCAN)
   extractedFields       Json?
   reviewState           ReviewState         @default(PENDING)
   expiryDate            DateTime?
@@ -164,17 +212,37 @@ model PropertyVerification {
   @@map("property_verifications")
 }
 
+model PresenceChallenge {
+  id                    String              @id @default(uuid())
+  propertyId            String
+  property              Property            @relation(fields: [propertyId], references: [id])
+  phrase                String
+  status                VerificationStatus  @default(PENDING)
+  expiresAt             DateTime
+  submittedLat          Float?
+  submittedLng          Float?
+  mediaKey              String?
+
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("presence_challenges")
+}
+
 model Listing {
   id                    String              @id @default(uuid())
   propertyId            String
   property              Property            @relation(fields: [propertyId], references: [id])
   version               Int                 @default(1) // Optimistic concurrency
   
-  rentAmount            Decimal
-  depositAmount         Decimal
+  rentAmount            Int                 // Stored in paise
+  depositAmount         Int                 // Stored in paise
   furnishing            String
+  bedroomCount          Int                 @default(1)
+  amenities             Json                @default("[]")
   availability          DateTime
   description           String?
+  mediaOrder            Json                @default("[]")
   lifecycleState        PublishStatus       @default(DRAFT)
   publishedVersion      Int?                // Links to ListingVersion
   
@@ -197,8 +265,10 @@ model ListingMedia {
   listing               Listing             @relation(fields: [listingId], references: [id])
   privateOriginalKey    String
   publicDerivativeKey   String
+  mimeType              String              @default("image/jpeg")
   sha256Hash            String
   pHash                 String
+  quarantineStatus      QuarantineStatus    @default(PENDING_SCAN)
   challengeMetadata     Json?               // Unstripped EXIF/Timestamp
   reviewState           ReviewState         @default(PENDING)
   
@@ -282,7 +352,7 @@ model PaymentOrder {
   id                    String              @id @default(uuid())
   tenantId              String
   listingId             String
-  amount                Decimal
+  amount                Int                 // Stored in paise
   currency              String              @default("INR")
   status                PaymentStatus       @default(CREATED)
   
@@ -325,7 +395,7 @@ model Refund {
   id                    String              @id @default(uuid())
   orderId               String
   order                 PaymentOrder        @relation(fields: [orderId], references: [id])
-  amount                Decimal
+  amount                Int                 // Stored in paise
   status                RefundStatus        @default(PENDING)
   providerReference     String?
   
@@ -419,9 +489,12 @@ model AuditLog {
   afterHash             String?
   requestId             String?
   ipDeviceReference     String?
+  reason                String?
   
   createdAt             DateTime            @default(now()) // Append only
 
+  @@index([entityType, entityId])
+  @@index([actorId])
   @@map("audit_logs")
 }
 
@@ -433,6 +506,7 @@ model OutboxEvent {
   
   createdAt             DateTime            @default(now())
 
+  @@index([processedAt])
   @@map("outbox_events")
 }
 
@@ -462,14 +536,41 @@ model NotificationPreference {
   @@map("notification_preferences")
 }
 
+model PrivacyRequest {
+  id                    String              @id @default(uuid())
+  userId                String
+  user                  User                @relation(fields: [userId], references: [id])
+  type                  PrivacyRequestType
+  status                PrivacyRequestStatus @default(PENDING)
+  processedAt           DateTime?
+  
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  @@map("privacy_requests")
+}
+
 // -----------------------------------------------------------------------------
 // ENUMS
 // -----------------------------------------------------------------------------
 
 enum Role {
   TENANT
-  LANDLORD
+  OWNER
+  REVIEWER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
 }
 
 enum PropertyStatus {
@@ -494,6 +595,7 @@ enum PublishStatus {
 
 enum VerificationStatus {
   PENDING
+  NEEDS_REVIEW
   VERIFIED
   REJECTED
   EXPIRED
@@ -561,4 +663,40 @@ enum SignalSeverity {
 enum SignalStatus {
   ACTIVE
   RESOLVED
+}
+
+enum PrivacyRequestType {
+  EXPORT
+  DELETION
+}
+
+enum OwnerState {
+  PROFILE_PENDING
+  KYC_PENDING
+  KYC_REVIEW
+  VERIFIED
+  CHANGES_REQUESTED
+  REJECTED
+  SUSPENDED
+  EXPIRED
+}
+
+enum PrivacyRequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum PropertyType {
+  APARTMENT
+  INDEPENDENT_HOUSE
+  VILLA
+  BUILDER_FLOOR
+}
+
+enum QuarantineStatus {
+  PENDING_SCAN
+  CLEARED
+  INFECTED
 }
