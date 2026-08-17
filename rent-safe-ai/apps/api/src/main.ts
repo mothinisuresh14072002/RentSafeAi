@@ -66,8 +66,8 @@ async function bootstrap() {
     SwaggerModule.setup('api/docs', app, document);
   }
 
-  await app.listen(env.PORT);
-  logger.log(`Application listening on port ${env.PORT}`);
+  await app.listen(env.PORT, '0.0.0.0');
+  logger.log(`Application listening on port ${env.PORT} on all interfaces (0.0.0.0)`);
 }
 
 // Catch floating promises gracefully

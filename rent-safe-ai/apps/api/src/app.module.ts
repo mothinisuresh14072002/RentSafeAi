@@ -30,14 +30,25 @@ import { PaymentModule } from './payment/payment.module';
 import { BullModule } from '@nestjs/bullmq';
 import { NotificationsModule } from './notifications/notifications.module';
 
+const queueModules =
+  process.env.NODE_ENV === 'production'
+    ? [
+        BullModule.forRoot({
+          connection: {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          },
+        }),
+        FraudModule,
+        ViewingModule,
+        RiskModule,
+        SafetyModule,
+        NotificationsModule,
+      ]
+    : [];
+
 @Module({
   imports: [
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-      },
-    }),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -60,18 +71,14 @@ import { NotificationsModule } from './notifications/notifications.module';
     BankModule,
     PropertyModule,
     StorageModule,
-    FraudModule,
     ReviewModule,
     ListingModule,
     SearchModule,
     ContactModule,
-    ViewingModule,
     AgreementModule,
-    RiskModule,
     FraudReportsModule,
-    SafetyModule,
     PaymentModule,
-    NotificationsModule,
+    ...queueModules,
   ],
   controllers: [AppController],
   providers: [

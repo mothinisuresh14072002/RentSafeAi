@@ -20,7 +20,14 @@ export class HealthController {
   ) {
     this.redisClient = new Redis(
       process.env.REDIS_URL || 'redis://localhost:6379',
+      {
+        lazyConnect: true,
+        retryStrategy: () => null, // Don't retry automatically
+      }
     );
+    this.redisClient.on('error', () => {
+      // Suppress unhandled error events
+    });
 
     const endpoint = process.env.MINIO_ENDPOINT || 'localhost';
     const port = parseInt(process.env.MINIO_PORT || '9000', 10);

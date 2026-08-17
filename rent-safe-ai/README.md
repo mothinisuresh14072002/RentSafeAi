@@ -32,9 +32,9 @@ Run from the repository root:
 
 Service URLs:
 
-- API: [http://localhost:3000/api/v1](http://localhost:3000/api/v1)
-- API liveness: [http://localhost:3000/api/v1/health/live](http://localhost:3000/api/v1/health/live)
-- Web: [http://localhost:3001](http://localhost:3001) when started with `pnpm --filter web dev -- -p 3001`
+- API: [http://localhost:3001/api/v1](http://localhost:3001/api/v1)
+- API liveness: [http://localhost:3001/api/v1/health/live](http://localhost:3001/api/v1/health/live)
+- Web: [http://localhost:3000](http://localhost:3000) when started with `pnpm --filter web dev`
 - MinIO API: [http://localhost:9000](http://localhost:9000); console: [http://localhost:9001](http://localhost:9001)
 - Mailpit: [http://localhost:8025](http://localhost:8025); SMTP `localhost:1025`
 

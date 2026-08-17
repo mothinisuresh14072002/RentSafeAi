@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   const validatePhone = (ph: string): boolean => {
     const digits = ph.replace(/\D/g, '');
-    return digits.length === 10 && /^[6-9]/.test(digits);
+    return digits.length >= 10;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -9,7 +9,13 @@
 
 import { getAccessToken, getRefreshToken, storeTokens, clearTokens, getUserRole } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+function getApiBaseUrl() {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:3001/api/v1`;
+  }
+  return 'http://localhost:3001/api/v1';
+}
 
 export class ApiError extends Error {
   constructor(
@@ -36,7 +42,7 @@ async function doRefresh(): Promise<string | null> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return null;
   try {
-    const res = await fetch(`${API_BASE_URL}/auth/otp/refresh`, {
+    const res = await fetch(`${getApiBaseUrl()}/auth/otp/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token: refreshToken }),
@@ -83,7 +89,7 @@ async function request<T = unknown>(
   if (auditReason) headers.set('X-Audit-Reason', auditReason);
   if (idempotencyKey) headers.set('Idempotency-Key', idempotencyKey);
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
