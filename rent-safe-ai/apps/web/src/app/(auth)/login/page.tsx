@@ -43,7 +43,7 @@ export default function LoginPage() {
           setError(err.message || 'Failed to send OTP. Please try again.');
         }
       } else {
-        setError('Network error. Please check your connection.');
+        setError('Login service is unavailable. Please start the API server and try again.');
       }
     } finally {
       setLoading(false);

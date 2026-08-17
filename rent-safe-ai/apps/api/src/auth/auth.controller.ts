@@ -66,5 +66,3 @@ export class AuthController {
     await this.authService.revokeSession(req.user.userId, sessionId);
   }
 }
-
-import { Param, Delete, Get } from '@nestjs/common';
