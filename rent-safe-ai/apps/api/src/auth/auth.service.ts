@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -249,6 +250,43 @@ export class AuthService {
     await this.prisma.session.updateMany({
       where: { userId, status: 'ACTIVE' },
       data: { status: 'REVOKED' },
+    });
+  }
+
+  async getUserSessions(userId: string) {
+    const sessions = await this.prisma.session.findMany({
+      where: { userId, status: 'ACTIVE' },
+      select: {
+        id: true,
+        deviceId: true,
+        createdAt: true,
+        updatedAt: true,
+        expiresAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { sessions };
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { userId: true },
+    });
+    if (!session || session.userId !== userId) {
+      throw new ForbiddenException('Cannot revoke this session');
+    }
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: { status: 'REVOKED' },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: userId,
+        action: 'SESSION_REVOKED',
+        entityType: 'SESSION',
+        entityId: sessionId,
+      },
     });
   }
 }

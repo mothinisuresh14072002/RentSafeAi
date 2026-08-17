@@ -297,4 +297,35 @@ export class ReviewService {
       return reviewCase;
     });
   }
+
+  async getDecryptedIdentifiers(propertyId: string, reviewerId: string) {
+    const identifiers = await this.prisma.propertyIdentifier.findMany({
+      where: { propertyId },
+      select: {
+        id: true,
+        identifierType: true,
+        encryptedValue: true,
+      },
+    });
+
+    // In a real system, we would decrypt using an envelope encryption service.
+    // For sandbox/MVP, we'll just return a mock decrypted value (base64 decode simulation).
+    const decrypted = identifiers.map((ident) => ({
+      id: ident.id,
+      type: ident.identifierType,
+      value: `DECRYPTED_${ident.id.slice(0, 8)}`, // Mock decryption
+    }));
+
+    // Log the access for audit
+    await this.prisma.auditLog.create({
+      data: {
+        actorId: reviewerId,
+        action: 'PROPERTY_IDENTIFIERS_VIEWED',
+        entityType: 'PROPERTY',
+        entityId: propertyId,
+      },
+    });
+
+    return { identifiers: decrypted };
+  }
 }

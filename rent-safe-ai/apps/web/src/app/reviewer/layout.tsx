@@ -1,10 +1,37 @@
-import React from 'react';
-import Link from 'next/link';
-import { apiClient } from '@/lib/api-client';
-import { redirect } from 'next/navigation';
+'use client';
 
-export default async function ReviewerLayout({ children }: { children: React.ReactNode }) {
-  // Simple role check, we might do this via server components natively or just let the client bounce them
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useAuth } from '@/hooks/useAuth';
+import { SkeletonCard } from '@/components/ui/Skeleton';
+
+export default function ReviewerLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const { role, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (!role) {
+        router.push('/login');
+      } else if (role !== 'REVIEWER' && role !== 'ADMIN') {
+        router.push('/access-denied');
+      }
+    }
+  }, [role, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <SkeletonCard className="max-w-2xl w-full" />
+      </div>
+    );
+  }
+
+  if (!role || (role !== 'REVIEWER' && role !== 'ADMIN')) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <nav className="bg-slate-900 border-b border-slate-800 text-white">

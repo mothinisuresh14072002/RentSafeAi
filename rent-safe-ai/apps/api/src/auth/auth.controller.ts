@@ -1,4 +1,4 @@
-import {
+import { Param, Delete, Get,
   Controller,
   Post,
   Body,
@@ -52,4 +52,19 @@ export class AuthController {
     await this.authService.logoutAll(req.user.userId);
     return { success: true };
   }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  async getSessions(@Request() req) {
+    return this.authService.getUserSessions(req.user.userId);
+  }
+
+  @Delete('sessions/:id')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async revokeSession(@Request() req, @Param('id') sessionId: string) {
+    await this.authService.revokeSession(req.user.userId, sessionId);
+  }
 }
+
+import { Param, Delete, Get } from '@nestjs/common';

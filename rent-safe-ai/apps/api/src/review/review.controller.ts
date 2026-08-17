@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Get,
   Param,
   Body,
   UseGuards,
@@ -82,6 +83,18 @@ export class ReviewController {
       req.user.userId,
       checkType,
       reason,
+    );
+  }
+
+  @Get('property/:propertyId/identifiers')
+  @Roles('REVIEWER', 'ADMIN')
+  async getPropertyIdentifiers(
+    @Request() req: any,
+    @Param('propertyId') propertyId: string,
+  ) {
+    return this.reviewService.getDecryptedIdentifiers(
+      propertyId,
+      req.user.userId,
     );
   }
 }
