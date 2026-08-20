@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-labelledby="title desc">
+  <title id="title">RentSafe AI owner verification dashboard UI</title>
+  <desc id="desc">A polished dashboard mockup showing identity, document, registry, ownership, risk and listing verification states.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#16233c"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#60a5fa"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-opacity="0.25"/></filter>
+  </defs>
+  <rect width="1600" height="920" rx="32" fill="url(#bg)"/>
+  <rect x="44" y="44" width="1512" height="832" rx="24" fill="#f8fafc" filter="url(#shadow)"/>
+  <rect x="44" y="44" width="1512" height="78" rx="24" fill="#ffffff"/>
+  <rect x="44" y="98" width="1512" height="24" fill="#ffffff"/>
+  <text x="82" y="92" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="800" fill="#0f172a">RentSafe AI</text>
+  <text x="300" y="92" font-family="Inter,Arial,sans-serif" font-size="16" fill="#64748b">Owner Trust Center</text>
+  <rect x="1280" y="68" width="122" height="36" rx="18" fill="#ecfdf5"/>
+  <circle cx="1300" cy="86" r="7" fill="#10b981"/>
+  <text x="1315" y="92" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#047857">VERIFIED</text>
+  <circle cx="1472" cy="86" r="18" fill="#e2e8f0"/>
+  <text x="1464" y="92" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="800" fill="#334155">MS</text>
+
+  <text x="84" y="170" font-family="Inter,Arial,sans-serif" font-size="29" font-weight="800" fill="#0f172a">Property verification</text>
+  <text x="84" y="198" font-family="Inter,Arial,sans-serif" font-size="15" fill="#64748b">Only verified owner properties can reach the public rental marketplace.</text>
+
+  <rect x="84" y="232" width="1018" height="244" rx="20" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="112" y="270" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="800" fill="#0f172a">12 Example Street, Adyar · Chennai</text>
+  <text x="112" y="296" font-family="Inter,Arial,sans-serif" font-size="13" fill="#64748b">APARTMENT · Property claim #RS-20481</text>
+  <rect x="112" y="326" width="920" height="10" rx="5" fill="#e2e8f0"/>
+  <rect x="112" y="326" width="805" height="10" rx="5" fill="url(#accent)"/>
+  <g font-family="Inter,Arial,sans-serif">
+    <circle cx="138" cy="384" r="18" fill="#dcfce7"/><text x="130" y="391" font-size="15" font-weight="800" fill="#15803d">✓</text>
+    <text x="170" y="390" font-size="14" font-weight="700" fill="#0f172a">Identity / KYC</text><text x="170" y="412" font-size="12" fill="#64748b">Owner identity verified</text>
+    <circle cx="372" cy="384" r="18" fill="#dcfce7"/><text x="364" y="391" font-size="15" font-weight="800" fill="#15803d">✓</text>
+    <text x="404" y="390" font-size="14" font-weight="700" fill="#0f172a">Document AI</text><text x="404" y="412" font-size="12" fill="#64748b">Low tamper risk · OCR matched</text>
+    <circle cx="620" cy="384" r="18" fill="#dcfce7"/><text x="612" y="391" font-size="15" font-weight="800" fill="#15803d">✓</text>
+    <text x="652" y="390" font-size="14" font-weight="700" fill="#0f172a">Registry</text><text x="652" y="412" font-size="12" fill="#64748b">Property exists</text>
+    <circle cx="820" cy="384" r="18" fill="#dcfce7"/><text x="812" y="391" font-size="15" font-weight="800" fill="#15803d">✓</text>
+    <text x="852" y="390" font-size="14" font-weight="700" fill="#0f172a">Owner match</text><text x="852" y="412" font-size="12" fill="#64748b">98.4% confidence</text>
+  </g>
+  <rect x="112" y="438" width="920" height="20" rx="10" fill="#f1f5f9"/>
+  <text x="112" y="453" font-family="Inter,Arial,sans-serif" font-size="11" fill="#64748b">Final gate: registry + ownership + document + presence checks must all pass.</text>
+
+  <rect x="1124" y="232" width="404" height="244" rx="20" fill="#0f172a"/>
+  <text x="1154" y="270" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="800" fill="#ffffff">Trust score</text>
+  <text x="1154" y="338" font-family="Inter,Arial,sans-serif" font-size="55" font-weight="900" fill="#5eead4">98.4</text>
+  <text x="1324" y="338" font-family="Inter,Arial,sans-serif" font-size="16" fill="#cbd5e1">/ 100</text>
+  <rect x="1154" y="360" width="344" height="8" rx="4" fill="#334155"/>
+  <rect x="1154" y="360" width="338" height="8" rx="4" fill="#5eead4"/>
+  <text x="1154" y="402" font-family="Inter,Arial,sans-serif" font-size="12" fill="#cbd5e1">No critical risk signals</text>
+  <rect x="1154" y="422" width="144" height="30" rx="15" fill="#134e4a"/><text x="1183" y="442" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#99f6e4">PUBLISH SAFE</text>
+
+  <rect x="84" y="504" width="720" height="316" rx="20" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="112" y="544" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="800" fill="#0f172a">Evidence intelligence</text>
+  <text x="112" y="570" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b">AI helps reviewers find inconsistencies; authoritative records remain the legal gate.</text>
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="112" y="602" width="668" height="50" rx="12" fill="#f8fafc"/>
+    <text x="132" y="632" font-size="13" font-weight="700" fill="#334155">Owner name</text><text x="286" y="632" font-size="13" fill="#0f172a">Mothini Suresh ↔ M. Suresh</text><text x="676" y="632" font-size="12" font-weight="700" fill="#047857">MATCH</text>
+    <rect x="112" y="664" width="668" height="50" rx="12" fill="#f8fafc"/>
+    <text x="132" y="694" font-size="13" font-weight="700" fill="#334155">Address</text><text x="286" y="694" font-size="13" fill="#0f172a">Normalized + registry aligned</text><text x="676" y="694" font-size="12" font-weight="700" fill="#047857">MATCH</text>
+    <rect x="112" y="726" width="668" height="50" rx="12" fill="#fff7ed"/>
+    <text x="132" y="756" font-size="13" font-weight="700" fill="#334155">Document integrity</text><text x="286" y="756" font-size="13" fill="#0f172a">Checksum + tamper model</text><text x="676" y="756" font-size="12" font-weight="700" fill="#c2410c">LOW RISK</text>
+  </g>
+
+  <rect x="828" y="504" width="700" height="316" rx="20" fill="#ffffff" stroke="#e2e8f0"/>
+  <text x="856" y="544" font-family="Inter,Arial,sans-serif" font-size="18" font-weight="800" fill="#0f172a">Public listing preview</text>
+  <rect x="856" y="570" width="214" height="218" rx="16" fill="#e2e8f0"/>
+  <rect x="870" y="584" width="186" height="112" rx="12" fill="#cbd5e1"/>
+  <rect x="870" y="710" width="104" height="12" rx="6" fill="#94a3b8"/>
+  <rect x="870" y="732" width="155" height="10" rx="5" fill="#cbd5e1"/>
+  <rect x="870" y="752" width="92" height="10" rx="5" fill="#cbd5e1"/>
+  <text x="1100" y="596" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="800" fill="#0f172a">Verified Owner Property</text>
+  <rect x="1100" y="612" width="138" height="26" rx="13" fill="#ecfdf5"/><text x="1121" y="630" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="800" fill="#047857">OWNER VERIFIED ✓</text>
+  <text x="1100" y="668" font-family="Inter,Arial,sans-serif" font-size="13" fill="#475569">₹28,000 / month · 2 BHK</text>
+  <text x="1100" y="692" font-family="Inter,Arial,sans-serif" font-size="13" fill="#475569">Adyar, Chennai</text>
+  <line x1="1100" y1="710" x2="1492" y2="710" stroke="#e2e8f0"/>
+  <text x="1100" y="736" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b">Tenant sees verification status,</text>
+  <text x="1100" y="756" font-family="Inter,Arial,sans-serif" font-size="12" fill="#64748b">never private ownership documents.</text>
+  <rect x="1100" y="774" width="150" height="30" rx="15" fill="#0f172a"/><text x="1132" y="794" font-family="Inter,Arial,sans-serif" font-size="12" font-weight="700" fill="#ffffff">CONTACT OWNER</text>
+</svg>

@@ -1,14 +1,14 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { DocumentIntelligenceProvider } from './providers/document-intelligence.provider';
 import { PropertyRegistryProvider } from './providers/property-registry.provider';
 import { VERIFICATION_CHECK_TYPES } from './ownership.constants';
 import { VerificationStatus, PropertyStatus, SignalSeverity } from '@prisma/client';
 import { AuditService } from '../common/audit/audit.service';
+import {
+  calculateOwnershipConfidence,
+  normalizeIdentityName,
+} from './ownership-confidence';
 
 @Injectable()
 export class OwnershipVerificationService {
@@ -27,49 +27,68 @@ export class OwnershipVerificationService {
   ) {
     const property = await this.prisma.property.findFirst({
       where: { id: propertyId, ownerId: userId },
-      include: { owner: { include: { profile: true } } },
+      include: {
+        owner: {
+          include: {
+            profile: true,
+            ownerKycCases: {
+              where: { status: VerificationStatus.VERIFIED },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
     });
 
-    if (!property) {
-      throw new NotFoundException('Property not found');
-    }
+    if (!property) throw new NotFoundException('Property not found');
 
     const document = await this.prisma.propertyDocument.findFirst({
       where: { id: documentId, propertyId },
     });
 
-    if (!document) {
-      throw new NotFoundException('Ownership document not found');
-    }
+    if (!document) throw new NotFoundException('Ownership document not found');
 
-    const ownerName = property.owner.profile?.displayName || '';
+    const ownerName =
+      property.owner.ownerKycCases[0]?.normalizedName ||
+      property.owner.profile?.displayName ||
+      '';
+
+    const structuredAddress = property.structuredAddress as Record<string, unknown>;
+    const propertyAddress = Object.values(structuredAddress).filter(Boolean).join(' ');
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Run AI Document Intelligence
-      // In production, we'd fetch the presigned URL for the objectKey
       const aiResult = await this.documentIntelligence.analyzeDocument(
         document.objectKey,
         document.mimeType,
       );
 
-      // Create AI verification record
+      await tx.propertyDocument.update({
+        where: { id: documentId },
+        data: { extractedFields: aiResult as any },
+      });
+
+      const documentAiStatus =
+        aiResult.tamperRiskScore > 0.5 || !aiResult.ownerName
+          ? VerificationStatus.NEEDS_REVIEW
+          : VerificationStatus.VERIFIED;
+
       await tx.propertyVerification.create({
         data: {
           propertyId,
           checkType: VERIFICATION_CHECK_TYPES.DOCUMENT_AI,
-          status:
-            aiResult.tamperRiskScore > 0.5
-              ? VerificationStatus.NEEDS_REVIEW
-              : VerificationStatus.VERIFIED,
+          status: documentAiStatus,
           evidenceReference: documentId,
           completedAt: new Date(),
         },
       });
 
-      if (aiResult.tamperRiskScore > 0.5) {
+      if (aiResult.tamperRiskScore > 0.5 || !aiResult.ownerName) {
         await tx.riskSignal.create({
           data: {
-            ruleCode: 'HIGH_TAMPER_RISK',
+            ruleCode: !aiResult.ownerName
+              ? 'DOCUMENT_OWNER_NOT_EXTRACTED'
+              : 'HIGH_TAMPER_RISK',
             severity: SignalSeverity.HIGH,
             entityType: 'PROPERTY',
             entityId: propertyId,
@@ -78,11 +97,7 @@ export class OwnershipVerificationService {
         });
       }
 
-      // 2. Authoritative Registry Check
-      const registryResult = await this.propertyRegistry.lookupProperty(
-        registryReference,
-      );
-
+      const registryResult = await this.propertyRegistry.lookupProperty(registryReference);
       const registryStatus = registryResult.exists
         ? VerificationStatus.VERIFIED
         : VerificationStatus.REJECTED;
@@ -97,58 +112,66 @@ export class OwnershipVerificationService {
         },
       });
 
-      // 3. Ownership Match
-      let ownershipMatchStatus = VerificationStatus.PENDING;
-      if (registryResult.exists) {
-        // Basic naive string matching for sandbox. Production needs robust fuzzy matching
-        const isMatch =
-          registryResult.legalOwnerName?.toLowerCase() ===
-          ownerName.toLowerCase();
-        
-        ownershipMatchStatus = isMatch
+      const confidence = calculateOwnershipConfidence({
+        ownerName,
+        registryOwnerName: registryResult.legalOwnerName || '',
+        documentOwnerName: aiResult.ownerName,
+        propertyAddress,
+        registryAddress: registryResult.address,
+      });
+
+      const ownershipMatchStatus =
+        registryResult.exists && confidence.ownerMatch && confidence.documentMatch
           ? VerificationStatus.VERIFIED
           : VerificationStatus.REJECTED;
 
-        await tx.propertyVerification.create({
+      await tx.propertyVerification.create({
+        data: {
+          propertyId,
+          checkType: VERIFICATION_CHECK_TYPES.OWNERSHIP_MATCH,
+          status: ownershipMatchStatus,
+          evidenceReference: registryReference,
+          completedAt: new Date(),
+        },
+      });
+
+      if (!confidence.ownerMatch || !confidence.documentMatch) {
+        await tx.riskSignal.create({
           data: {
-            propertyId,
-            checkType: VERIFICATION_CHECK_TYPES.OWNERSHIP_MATCH,
-            status: ownershipMatchStatus,
-            evidenceReference: registryReference,
-            completedAt: new Date(),
+            ruleCode: 'OWNERSHIP_EVIDENCE_MISMATCH',
+            severity: SignalSeverity.CRITICAL,
+            entityType: 'PROPERTY',
+            entityId: propertyId,
+            evidenceJson: {
+              owner: normalizeIdentityName(ownerName),
+              registryOwner: normalizeIdentityName(registryResult.legalOwnerName),
+              documentOwner: normalizeIdentityName(aiResult.ownerName),
+              overallScore: confidence.overallScore,
+              registryOwnerScore: confidence.registryOwnerScore,
+              documentOwnerScore: confidence.documentOwnerScore,
+            },
           },
         });
-
-        if (!isMatch) {
-          await tx.riskSignal.create({
-            data: {
-              ruleCode: 'OWNERSHIP_MISMATCH',
-              severity: SignalSeverity.CRITICAL,
-              entityType: 'PROPERTY',
-              entityId: propertyId,
-              evidenceJson: { expected: ownerName, actual: registryResult.legalOwnerName },
-            },
-          });
-        }
       }
 
-      // 4. Update Property Status
-      // A property becomes ACTIVE only when both hard checks pass
-      if (
+      const hardChecksPassed =
         registryStatus === VerificationStatus.VERIFIED &&
-        ownershipMatchStatus === VerificationStatus.VERIFIED
-      ) {
-        await tx.property.update({
-          where: { id: propertyId },
-          data: { status: PropertyStatus.ACTIVE },
-        });
+        ownershipMatchStatus === VerificationStatus.VERIFIED &&
+        documentAiStatus === VerificationStatus.VERIFIED &&
+        confidence.addressMatch;
 
+      await tx.property.update({
+        where: { id: propertyId },
+        data: { status: hardChecksPassed ? PropertyStatus.ACTIVE : PropertyStatus.INACTIVE },
+      });
+
+      if (hardChecksPassed) {
         await this.auditService.log(tx, {
           actorId: userId,
           action: 'PROPERTY_ACTIVATED',
           entityType: 'PROPERTY',
           entityId: propertyId,
-          reason: 'Hard ownership checks passed',
+          reason: 'Identity, document, registry and ownership checks passed',
         });
       }
 
@@ -162,9 +185,7 @@ export class OwnershipVerificationService {
       include: { verifications: true },
     });
 
-    if (!property) {
-      throw new NotFoundException('Property not found');
-    }
+    if (!property) throw new NotFoundException('Property not found');
 
     return {
       propertyStatus: property.status,

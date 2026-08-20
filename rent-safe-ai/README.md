@@ -58,6 +58,16 @@ flowchart TD
 
 ---
 
+## Advanced owner trust center UI
+
+The repository includes a polished dashboard concept for the owner/reviewer workflow. It visualizes the same checks enforced by the backend: identity, document intelligence, registry existence, ownership matching, risk scoring, and the final publication gate.
+
+<img src="docs/images/rentsafe-owner-dashboard.svg" alt="RentSafe AI owner verification dashboard UI" width="100%" />
+
+The UI is intentionally privacy-preserving: tenants see a **Verified Owner** status and trust summary, while raw KYC/title evidence remains private to authorized reviewers.
+
+---
+
 ## Architecture
 
 <img src="docs/images/rentsafe-ai-trust-architecture.svg" alt="RentSafe AI trust architecture" width="100%" />
@@ -92,9 +102,7 @@ RentSafe therefore separates:
 
 ### 2. Property registration is now a claim first
 
-`POST /property/register` creates an **INACTIVE property claim**. It is not treated as a verified property.
-
-The service immediately creates pending verification records:
+`POST /property/register` creates an **INACTIVE property claim** and immediately creates a pending verification checklist:
 
 - `REGISTRY_EXISTENCE`
 - `OWNERSHIP_MATCH`
@@ -108,6 +116,7 @@ These checks are non-overridable:
 
 - `REGISTRY_EXISTENCE`
 - `OWNERSHIP_MATCH`
+- `DOCUMENT_AI` when the document is tamper-risk or the owner name cannot be extracted.
 
 A reviewer may resolve soft/AI checks with a documented reason, but cannot convert a failed registry ownership match into a verified property.
 
@@ -115,7 +124,7 @@ A reviewer may resolve soft/AI checks with a documented reason, but cannot conve
 
 The listing service verifies all hard ownership checks before allowing a listing to be created, submitted, or published.
 
-That means a broker can create an account and even upload a forged PDF, but cannot obtain an active property/listing unless the authoritative ownership source returns a matching owner.
+That means a broker can create an account, but cannot obtain an active owner property/listing unless the authenticated owner has passed KYC and the authoritative ownership checks succeed.
 
 ---
 
@@ -143,6 +152,10 @@ The resulting fields are compared against:
 - authoritative registry result;
 - previously registered property identifiers.
 
+### Identity / ownership confidence engine
+
+The code now normalizes names and addresses before matching and combines multiple evidence signals rather than using a single exact string comparison. Initials, punctuation, titles, OCR variations, and common address abbreviations are handled deterministically; the registry owner remains the strongest weighted signal.
+
 ### Suggested AI models / components
 
 A production deployment can use:
@@ -153,7 +166,7 @@ A production deployment can use:
 - tamper checks: image forensics + metadata consistency;
 - risk classifier: a small supervised model over platform fraud signals.
 
-The repository overlay intentionally ships a **sandbox provider** with deterministic behavior so local development does not pretend to perform legal verification.
+The repository overlay intentionally ships **sandbox providers** with deterministic behavior so local development does not pretend to perform legal verification.
 
 ---
 
@@ -210,7 +223,7 @@ POST /api/v1/storage/upload-request
 POST /api/v1/storage/finalize
 ```
 
-`storage/finalize` now accepts:
+`storage/finalize` accepts a property-scoped document payload:
 
 ```json
 {
@@ -249,20 +262,20 @@ GET /api/v1/property/<property-id>/ownership
 
 ## Anti-broker and anti-forgery controls
 
-The implementation adds several layers instead of trusting a single document:
+The implementation uses multiple independent controls instead of trusting a single document:
 
-- legal identifier duplication check before creating the property claim;
-- normalized address duplication check;
-- KYC owner name as the expected owner identity;
-- private ownership evidence upload;
-- file checksum + quarantine/malware flow;
-- AI extraction and consistency analysis;
-- authoritative registry existence check;
-- authoritative owner-name match;
-- non-overridable hard ownership gates;
-- high/critical fraud signals on mismatches;
-- append-only audit events;
-- reviewer visibility without exposing raw owner documents to tenants.
+- only verified owners can submit property claims;
+- legal address duplication is checked before creating the claim;
+- property claims start `INACTIVE`;
+- the verification checklist is created immediately at registration;
+- private ownership evidence is processed through the document-intelligence provider;
+- extracted owner name and tamper risk are persisted;
+- authoritative registry existence is checked server-side;
+- authoritative owner matching is weighted most strongly;
+- registry owner conflicts create critical risk signals;
+- a missing extracted owner name or high tamper risk prevents automatic activation;
+- public listing publication remains gated by owner verification and property review;
+- reviewer actions stay auditable.
 
 ---
 
@@ -284,24 +297,26 @@ rent-safe-ai/
 │   │   └── src/
 │   │       ├── auth/
 │   │       ├── property/
-│   │       │   ├── ownership-verification.controller.ts   # NEW
-│   │       │   ├── ownership-verification.service.ts      # NEW
-│   │       │   ├── ownership.constants.ts                 # NEW
+│   │       │   ├── ownership-verification.controller.ts
+│   │       │   ├── ownership-verification.service.ts
+│   │       │   ├── ownership-confidence.ts                 # NEW
+│   │       │   ├── ownership-confidence.spec.ts            # NEW
+│   │       │   ├── ownership.constants.ts
 │   │       │   └── providers/
-│   │       │       ├── document-intelligence.provider.ts  # NEW
+│   │       │       ├── document-intelligence.provider.ts
 │   │       │       ├── sandbox-document-intelligence.provider.ts
-│   │       │       ├── property-registry.provider.ts      # NEW
+│   │       │       ├── property-registry.provider.ts
 │   │       │       └── sandbox-property-registry.provider.ts
 │   │       ├── review/
 │   │       ├── risk/
 │   │       └── storage/
 │   ├── web/
-│   │   └── src/app/owner/properties/
-│   │       ├── new/
-│   │       └── [id]/verify/                               # NEW
 │   └── mobile/
 ├── docs/
 │   └── images/
+│       ├── rentsafe-owner-dashboard.svg                 # NEW
+│       ├── rentsafe-owner-verification-flow.svg
+│       └── rentsafe-ai-trust-architecture.svg
 ├── infra/
 └── package.json
 ```
@@ -329,17 +344,19 @@ Local services:
 - Mailpit: `http://localhost:8025`
 - pgAdmin: `http://localhost:5050`
 
-### Local verification test
+### Verification test scenarios
 
-1. Sign in with the demo owner.
-2. Complete owner KYC.
-3. Create a property claim.
-4. Upload a PDF ownership document.
-5. Mark the local malware scan fixture as cleared.
-6. Use a registry reference such as `TN-SANDBOX-123456`.
-7. Run ownership verification.
-8. Complete presence/reviewer checks.
-9. Create/publish a listing.
+The automated suite covers the critical fraud-control helpers and property registration behavior:
+
+1. owner-name normalization and initials;
+2. OCR/name variation scoring;
+3. address similarity;
+4. verified registry owner matching;
+5. conflicting registry owner rejection;
+6. invalid Chennai PIN/locality rejection;
+7. duplicate property-address rejection;
+8. inactive property claim creation;
+9. automatic creation of the three pending verification checks.
 
 ---
 
@@ -349,7 +366,7 @@ Local services:
 - Tenants see a verification badge/status, not private title documents.
 - Registry ownership is a server-side decision.
 - All state-changing reviewer actions are audited.
-- Hard ownership checks cannot be bypassed with reviewer overrides.
+- Hard ownership checks cannot be bypassed with a reviewer override.
 - Failed owner matching produces fraud signals.
 - A property remains inactive when legal ownership cannot be established.
 
