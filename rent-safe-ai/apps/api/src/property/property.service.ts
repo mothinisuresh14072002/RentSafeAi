@@ -74,7 +74,7 @@ export class PropertyService {
           latitude: coords.latitude,
           longitude: coords.longitude,
           normalizedAddressHash,
-          status: PropertyStatus.ACTIVE,
+          status: PropertyStatus.INACTIVE,
         },
       });
 
