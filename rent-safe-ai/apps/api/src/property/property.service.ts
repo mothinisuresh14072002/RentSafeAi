@@ -12,9 +12,10 @@ import {
   isValidChennaiPinCode,
 } from './data/chennai-localities';
 import { Policies } from '../auth/policies';
-import { PropertyType, PropertyStatus } from '@prisma/client';
+import { PropertyType, PropertyStatus, VerificationStatus } from '@prisma/client';
 import { AuditService } from '../common/audit/audit.service';
 import * as crypto from 'crypto';
+import { VERIFICATION_CHECK_TYPES } from './ownership.constants';
 
 export interface RegisterPropertyDto {
   propertyType: PropertyType;
@@ -32,10 +33,8 @@ export class PropertyService {
   ) {}
 
   async registerProperty(ownerId: string, dto: RegisterPropertyDto) {
-    // 1. Policy Guard: Verify owner is eligible to submit
     await this.policies.canSubmitProperty(ownerId);
 
-    // 2. Validation
     if (!isValidChennaiLocality(dto.address.locality)) {
       throw new BadRequestException(
         `Locality ${dto.address.locality} is not within our supported Chennai bounds.`,
@@ -47,14 +46,10 @@ export class PropertyService {
       );
     }
 
-    // 3. Geocoding
     const coords = await this.geocodingProvider.geocodeAddress(dto.address);
-
-    // 4. Normalization and Hashing
     const normalizedAddressHash = AddressNormalizer.hashAddress(dto.address);
 
     return this.prisma.$transaction(async (tx) => {
-      // Deduplication explicit check for MVP readability, though unique constraint catches it
       const existing = await tx.property.findUnique({
         where: { normalizedAddressHash },
       });
@@ -78,18 +73,14 @@ export class PropertyService {
         },
       });
 
-      // 5. Identifiers
       for (const idf of dto.identifiers) {
         const normalizedHash = crypto
           .createHash('sha256')
           .update(idf.value.trim().toLowerCase())
           .digest('hex');
-        const encryptedValue = Buffer.from(`enc_${idf.value}`).toString(
-          'base64',
-        );
 
-        // Note: we might want to check duplicate identifier here globally, but schema handles constraints if we add them.
-        // For MVP, we will just store it.
+        const encryptedValue = Buffer.from(`enc_${idf.value}`).toString('base64');
+
         await tx.propertyIdentifier.create({
           data: {
             propertyId: property.id,
@@ -100,11 +91,33 @@ export class PropertyService {
         });
       }
 
+      // Registration is a claim, never proof. Create the verification checklist immediately.
+      await tx.propertyVerification.createMany({
+        data: [
+          {
+            propertyId: property.id,
+            checkType: VERIFICATION_CHECK_TYPES.DOCUMENT_AI,
+            status: VerificationStatus.PENDING,
+          },
+          {
+            propertyId: property.id,
+            checkType: VERIFICATION_CHECK_TYPES.REGISTRY_EXISTENCE,
+            status: VerificationStatus.PENDING,
+          },
+          {
+            propertyId: property.id,
+            checkType: VERIFICATION_CHECK_TYPES.OWNERSHIP_MATCH,
+            status: VerificationStatus.PENDING,
+          },
+        ],
+      });
+
       await this.auditService.log(tx, {
         actorId: ownerId,
         action: 'PROPERTY_REGISTERED',
         entityType: 'PROPERTY',
         entityId: property.id,
+        reason: 'Inactive property claim created; ownership verification required',
       });
 
       return property;

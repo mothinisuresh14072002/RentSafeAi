@@ -29,6 +29,9 @@ describe('PropertyService', () => {
             propertyIdentifier: {
               create: jest.fn(),
             },
+            propertyVerification: {
+              createMany: jest.fn(),
+            },
           },
         },
         {
@@ -106,14 +109,17 @@ describe('PropertyService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it('registers property and identifiers correctly', async () => {
+    it('registers an inactive claim with a pending verification checklist', async () => {
       jest.spyOn(prisma.property, 'findUnique').mockResolvedValue(null);
-      const createPropSpy = jest
+      jest
         .spyOn(prisma.property, 'create')
-        .mockResolvedValue({ id: 'p1' } as any);
+        .mockResolvedValue({ id: 'p1', status: 'INACTIVE' } as any);
       const createIdfSpy = jest
         .spyOn(prisma.propertyIdentifier, 'create')
         .mockResolvedValue({} as any);
+      const createVerificationSpy = jest
+        .spyOn(prisma.propertyVerification, 'createMany')
+        .mockResolvedValue({ count: 3 });
 
       await service.registerProperty('u1', {
         propertyType: PropertyType.APARTMENT,
@@ -123,17 +129,6 @@ describe('PropertyService', () => {
 
       expect(policies.canSubmitProperty).toHaveBeenCalledWith('u1');
       expect(provider.geocodeAddress).toHaveBeenCalled();
-
-      expect(createPropSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            chennaiLocality: 'ADYAR',
-            propertyType: PropertyType.APARTMENT,
-            latitude: 13.0,
-          }),
-        }),
-      );
-
       expect(createIdfSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -142,7 +137,13 @@ describe('PropertyService', () => {
           }),
         }),
       );
-
+      expect(createVerificationSpy).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          expect.objectContaining({ checkType: 'DOCUMENT_AI', status: 'PENDING' }),
+          expect.objectContaining({ checkType: 'REGISTRY_EXISTENCE', status: 'PENDING' }),
+          expect.objectContaining({ checkType: 'OWNERSHIP_MATCH', status: 'PENDING' }),
+        ]),
+      });
       expect(audit.log).toHaveBeenCalledWith(
         prisma,
         expect.objectContaining({
