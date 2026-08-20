@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="100%" height="100%">
+  <defs>
+    <linearGradient id="layerGrad1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#dbeafe;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#bfdbfe;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="layerGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#e0e7ff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c7d2fe;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="layerGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fef3c7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fde68a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="layerGrad4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#d1fae5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a7f3d0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="layerGrad5" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fce7f3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fbcfe8;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" fill="#f8fafc" rx="8"/>
+  
+  <text x="600" y="35" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="22" font-weight="bold" fill="#0f172a" text-anchor="middle">RentSafe AI Trust Architecture</text>
+  
+  <!-- Layer boxes -->
+  <rect x="40" y="60" width="1120" height="90" rx="6" fill="url(#layerGrad1)" stroke="#3b82f6" stroke-width="2"/>
+  <text x="600" y="95" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Web</text>
+  <text x="600" y="118" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#1e40af" text-anchor="middle">Next.js App Router owner + reviewer experience</text>
+  <text x="600" y="138" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#1e40af" text-anchor="middle">React Native / Expo tenant experience</text>
+  
+  <rect x="40" y="160" width="1120" height="90" rx="6" fill="url(#layerGrad2)" stroke="#6366f1" stroke-width="2"/>
+  <text x="600" y="195" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="bold" fill="#312e81" text-anchor="middle">API</text>
+  <text x="600" y="218" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#3730a3" text-anchor="middle">NestJS authorization, verification orchestration, listing gates</text>
+  
+  <rect x="40" y="260" width="1120" height="90" rx="6" fill="url(#layerGrad3)" stroke="#f59e0b" stroke-width="2"/>
+  <text x="600" y="295" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="bold" fill="#78350f" text-anchor="middle">Data & Async</text>
+  <text x="600" y="318" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#92400e" text-anchor="middle">PostgreSQL + Prisma</text>
+  <text x="600" y="338" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#92400e" text-anchor="middle">BullMQ + Redis · Private S3-compatible storage / MinIO, presigned uploads</text>
+  
+  <rect x="40" y="360" width="1120" height="90" rx="6" fill="url(#layerGrad4)" stroke="#10b981" stroke-width="2"/>
+  <text x="600" y="395" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="bold" fill="#064e3b" text-anchor="middle">Identity & AI</text>
+  <text x="600" y="418" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#065f46" text-anchor="middle">Owner KYC + verified phone/email</text>
+  <text x="600" y="438" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#065f46" text-anchor="middle">OCR/document field extraction, cross-document consistency, tamper risk</text>
+  
+  <rect x="40" y="460" width="1120" height="90" rx="6" fill="url(#layerGrad5)" stroke="#ec4899" stroke-width="2"/>
+  <text x="600" y="495" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="16" font-weight="bold" fill="#831843" text-anchor="middle">Registry & Safety</text>
+  <text x="600" y="518" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#9d174d" text-anchor="middle">State/authority-specific property registry adapter</text>
+  <text x="600" y="538" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="13" fill="#9d174d" text-anchor="middle">Fraud signals, audit logs, reviewer queue, non-overridable ownership checks</text>
+  
+  <!-- Connecting lines -->
+  <line x1="600" y1="150" x2="600" y2="160" stroke="#64748b" stroke-width="2"/>
+  <line x1="600" y1="250" x2="600" y2="260" stroke="#64748b" stroke-width="2"/>
+  <line x1="600" y1="350" x2="600" y2="360" stroke="#64748b" stroke-width="2"/>
+  <line x1="600" y1="450" x2="600" y2="460" stroke="#64748b" stroke-width="2"/>
+  
+  <text x="600" y="585" font-family="Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="14" fill="#475569" text-anchor="middle">All layers enforce the core rule: AI assists, but authoritative registry evidence is the non-overridable gate.</text>
+</svg>
