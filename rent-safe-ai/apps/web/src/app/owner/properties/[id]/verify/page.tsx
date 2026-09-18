@@ -32,10 +32,6 @@ export default function OwnershipVerificationPage() {
   const [documentId, setDocumentId] = useState('doc-123');
   const [registryReference, setRegistryReference] = useState('TN-SANDBOX-123456');
 
-  useEffect(() => {
-    fetchStatus();
-  }, [propertyId]);
-
   const fetchStatus = async () => {
     try {
       // Assuming a fetch to our API route proxy or direct backend
@@ -52,6 +48,10 @@ export default function OwnershipVerificationPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    void fetchStatus();
+  }, [propertyId]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
