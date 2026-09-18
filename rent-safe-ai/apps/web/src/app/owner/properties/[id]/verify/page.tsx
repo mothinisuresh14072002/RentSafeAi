@@ -50,7 +50,10 @@ export default function OwnershipVerificationPage() {
   };
 
   useEffect(() => {
-    void fetchStatus();
+    const timer = window.setTimeout(() => {
+      void fetchStatus();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [propertyId]);
 
   const handleVerify = async (e: React.FormEvent) => {
