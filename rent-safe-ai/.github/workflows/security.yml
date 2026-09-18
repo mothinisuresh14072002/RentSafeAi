@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+defaults:
+  run:
+    working-directory: rent-safe-ai
+
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -20,5 +24,6 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: rent-safe-ai/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm audit --audit-level high
