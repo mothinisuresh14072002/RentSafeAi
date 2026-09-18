@@ -21,10 +21,7 @@ export default function ReviewCasePage({ params }: { params: { id: string } }) {
     setError('');
 
     try {
-      await apiClient(`/fraud-reports/${params.id}/actions`, {
-        method: 'POST',
-        body: JSON.stringify({ action: decision, resolution: reason })
-      });
+      await apiClient.post(`/fraud-reports/${params.id}/actions`, { action: decision, resolution: reason });
       router.push('/reviewer/dashboard');
     } catch (e: any) {
       setError(e.message || 'Failed to submit decision');
