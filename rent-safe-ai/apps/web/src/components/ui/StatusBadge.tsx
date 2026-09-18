@@ -81,7 +81,7 @@ const colorMap: Record<string, string> = {
   REFUNDED: 'bg-purple-100 text-purple-800',
 };
 
-export function StatusBadge({ status, type, className = '' }: StatusBadgeProps) {
+export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
   const color = colorMap[status] || 'bg-gray-100 text-gray-800';
 
   return (
