@@ -82,7 +82,8 @@ async function request<T = unknown>(
   const { auditReason, idempotencyKey, skipAuthRefresh, body, ...init } = options;
 
   const headers = new Headers(init.headers as HeadersInit);
-  headers.set('Content-Type', 'application/json');
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+  if (!isFormData) headers.set('Content-Type', 'application/json');
 
   const token = getAccessToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -92,7 +93,7 @@ async function request<T = unknown>(
   const res = await fetch(`${getApiBaseUrl()}${path}`, {
     ...init,
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? (isFormData ? body as FormData : JSON.stringify(body)) : undefined,
   });
 
   if (res.status === 401 && !skipAuthRefresh && !isRetry) {
@@ -101,7 +102,7 @@ async function request<T = unknown>(
       return request<T>(path, options, true);
     }
     clearTokens();
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.assign('/login');
     throw new ApiError(401, 'UNAUTHORIZED', 'Session expired. Please log in again.');
   }
 
