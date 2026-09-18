@@ -37,9 +37,10 @@ services:
       - minio_data:/data
 
   api:
-    image: ghcr.io/mothinisuresh14072002/rentsafeai-api:latest
+    image: ghcr.io/mothinisuresh14072002/rentsafeai-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    env_file: [.env.production]
+    env_file:
+      - ../../.env.production
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -51,10 +52,15 @@ services:
       MINIO_PORT: 9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rentsafe-private}
       ENABLE_SWAGGER: "false"
     depends_on:
-      postgres: {condition: service_healthy}
-      redis: {condition: service_healthy}
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -62,10 +68,11 @@ services:
       retries: 5
 
   web:
-    image: ghcr.io/mothinisuresh14072002/rentsafeai-web:latest
+    image: ghcr.io/mothinisuresh14072002/rentsafeai-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
-      api: {condition: service_healthy}
+      api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
@@ -78,10 +85,12 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      web: {condition: service_healthy}
-      api: {condition: service_healthy}
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
