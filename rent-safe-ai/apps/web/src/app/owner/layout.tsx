@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
+import { clearTokens } from '@/lib/auth';
 import { SkeletonCard } from '@/components/ui/Skeleton';
 
 export default function OwnerLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,12 @@ export default function OwnerLayout({ children }: { children: React.ReactNode })
   }, [role, loading, router]);
 
   if (loading) {
-    return (
+    const handleSignOut = () => {
+    clearTokens();
+    router.replace('/login');
+  };
+
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <SkeletonCard className="max-w-2xl w-full" />
       </div>
