@@ -1,0 +1,46 @@
+name: Container Release
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API
+        uses: docker/build-push-action@v6
+        with:
+          context: ./rent-safe-ai
+          file: ./rent-safe-ai/apps/api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/mothinisuresh14072002/rentsafeai-api:latest
+            ghcr.io/mothinisuresh14072002/rentsafeai-api:${{ github.sha }}
+
+      - name: Build and push Web
+        uses: docker/build-push-action@v6
+        with:
+          context: ./rent-safe-ai
+          file: ./rent-safe-ai/apps/web/Dockerfile
+          push: true
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api/v1
+          tags: |
+            ghcr.io/mothinisuresh14072002/rentsafeai-web:latest
+            ghcr.io/mothinisuresh14072002/rentsafeai-web:${{ github.sha }}
