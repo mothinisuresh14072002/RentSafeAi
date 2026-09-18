@@ -15,7 +15,8 @@ const steps = [
 
 export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  interface OwnerProfile { fullName?: string; phoneNumber?: string; email?: string; state?: string; }
+  const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [formData, setFormData] = useState({ fullName: '', phoneNumber: '', email: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +24,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const data = await apiClient.get('/owner-profile');
+        const data = await apiClient.get<OwnerProfile>('/owner-profile');
         setProfile(data);
         if (data) setFormData({ fullName: data.fullName || '', phoneNumber: data.phoneNumber || '', email: data.email || '' });
       } catch (e: any) {
@@ -41,7 +42,7 @@ export default function OnboardingPage() {
     try {
       if (profile) await apiClient.patch('/owner-profile', formData);
       else await apiClient.post('/owner-profile/draft', formData);
-      setProfile(await apiClient.get('/owner-profile'));
+      setProfile(await apiClient.get<OwnerProfile>('/owner-profile'));
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : 'We could not save your profile.');
     } finally { setSaving(false); }
