@@ -254,7 +254,7 @@ export default function NewPropertyWizard() {
 
             <div className="mt-8 flex justify-between pt-6 border-t border-gray-100">
               {step > 1 ? (
-                <Button type="button" variant="outline" onClick={prevStep}>
+                <Button type="button" variant="secondary" onClick={prevStep}>
                   Back
                 </Button>
               ) : (
