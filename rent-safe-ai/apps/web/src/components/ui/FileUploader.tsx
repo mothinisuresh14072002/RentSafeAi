@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from './Button';
 import { apiClient } from '@/lib/api-client';
-import { StatusBadge } from './StatusBadge';
 
 interface FileUploaderProps {
   propertyId: string;
