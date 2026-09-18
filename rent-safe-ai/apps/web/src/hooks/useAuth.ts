@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { getAccessToken, getUserRole, getUserId, type Role } from '@/lib/auth';
 
 export interface AuthState {
@@ -9,18 +9,28 @@ export interface AuthState {
   loading: boolean;
 }
 
+function readAuthState(): AuthState {
+  const token = getAccessToken();
+  return {
+    role: token ? getUserRole() : null,
+    userId: token ? getUserId() : null,
+    loading: false,
+  };
+}
+
 export function useAuth(): AuthState {
-  const [state, setState] = useState<AuthState>({
+  const [state, setState] = useState<AuthState>(() => ({
     role: null,
     userId: null,
     loading: true,
-  });
+  }));
 
   useEffect(() => {
-    const token = getAccessToken();
-    const role = getUserRole();
-    const userId = getUserId();
-    setState({ role: token ? role : null, userId: token ? userId : null, loading: false });
+    const timer = window.setTimeout(() => {
+      setState(readAuthState());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   return state;
