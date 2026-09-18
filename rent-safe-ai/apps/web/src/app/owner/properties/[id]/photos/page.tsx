@@ -211,7 +211,7 @@ export default function PropertyPhotosPage() {
           )}
 
           <div className="flex justify-between items-center pt-6 border-t border-gray-100">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="secondary" onClick={() => router.back()}>
               Back
             </Button>
             <Button 
