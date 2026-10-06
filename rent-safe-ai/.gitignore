@@ -4,5 +4,11 @@ dist
 build
 .turbo
 .env
+.env.*
+!.env.example
+!.env.production.example
 .DS_Store
 *.log
+coverage
+playwright-report
+test-results
