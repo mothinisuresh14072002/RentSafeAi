@@ -26,7 +26,7 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
@@ -35,9 +35,23 @@ services:
     volumes:
       - local_minio_data:/data
 
+  minio-init:
+    image: minio/mc:latest
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rentsafe-private}
+    volumes:
+      - ./minio-init.sh:/init.sh:ro
+    entrypoint: ["/bin/sh", "/init.sh"]
+
   api:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     environment:
@@ -49,16 +63,23 @@ services:
       REDIS_PORT: 6379
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      JWT_SECRET: ${JWT_SECRET:-local-only-change-me}
+      MINIO_BUCKET: ${MINIO_BUCKET:-rentsafe-private}
+      JWT_SECRET: ${JWT_SECRET:-local-lan-only-jwt-secret-change-before-internet-use}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-local-lan-only-payment-webhook-secret}
+      KYC_WEBHOOK_SECRET: ${KYC_WEBHOOK_SECRET:-local-lan-only-kyc-webhook-secret}
+      MALWARE_SCAN_SECRET: ${MALWARE_SCAN_SECRET:-local-lan-only-malware-scan-secret}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost}
-      ENABLE_SWAGGER: "true"
+      ENABLE_SWAGGER: "false"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -67,7 +88,7 @@ services:
 
   web:
     build:
-      context: .
+      context: ../..
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_URL: /api/v1
@@ -75,6 +96,11 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   nginx:
     image: nginx:1.27-alpine
@@ -82,10 +108,10 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./infra/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       web:
-        condition: service_started
+        condition: service_healthy
       api:
         condition: service_healthy
 

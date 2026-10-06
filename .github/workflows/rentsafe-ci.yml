@@ -6,17 +6,52 @@ on:
   push:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 concurrency:
-  group: rentsafe-ci-${{ github.ref }}
+  group: rentsafe-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
-    name: Lint, Typecheck, Build and Test
+    name: Lint, Typecheck, Build, Migrate and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: rentsafe
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: rentsafe_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rentsafe -d rentsafe_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     defaults:
       run:
         working-directory: rent-safe-ai
+
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://rentsafe:ci_password@127.0.0.1:5432/rentsafe_ci?schema=public
+      REDIS_URL: redis://127.0.0.1:6379
+      MINIO_ENDPOINT: 127.0.0.1
+      MINIO_PORT: "9000"
+      MINIO_ROOT_USER: ci_minio
+      MINIO_ROOT_PASSWORD: ci_minio_password
+      JWT_SECRET: ci-only-jwt-secret-that-is-longer-than-32-characters
+      PAYMENT_WEBHOOK_SECRET: ci-only-payment-webhook-secret
+      KYC_WEBHOOK_SECRET: ci-only-kyc-webhook-secret
+      MALWARE_SCAN_SECRET: ci-only-malware-scan-secret
 
     steps:
       - name: Checkout
@@ -37,6 +72,15 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api prisma:generate
+
+      - name: Validate Prisma schema
+        run: pnpm --filter api prisma:validate
+
+      - name: Apply migrations to fresh PostgreSQL
+        run: pnpm --filter api exec prisma migrate deploy
 
       - name: Lint
         run: pnpm lint
