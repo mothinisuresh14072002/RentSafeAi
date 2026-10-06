@@ -36,7 +36,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push API
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./rent-safe-ai
           file: ./rent-safe-ai/apps/api/Dockerfile
@@ -48,7 +48,7 @@ jobs:
             ghcr.io/mothinisuresh14072002/rentsafeai-api:${{ env.RELEASE_SHA }}
 
       - name: Build and push Web
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./rent-safe-ai
           file: ./rent-safe-ai/apps/web/Dockerfile
