@@ -6,45 +6,9 @@
 
 ### Property listings should come from the legal owner, not a broker pretending to be one.
 
-[![RentSafe AI CI](https://github.com/mothinisuresh14072002/RentSafeAi/actions/workflows/rentsafe-ci.yml/badge.svg)](https://github.com/mothinisuresh14072002/RentSafeAi/actions/workflows/rentsafe-ci.yml)
-[![Security](https://github.com/mothinisuresh14072002/RentSafeAi/actions/workflows/security.yml/badge.svg)](https://github.com/mothinisuresh14072002/RentSafeAi/actions/workflows/security.yml)
-[![GitHub stars](https://img.shields.io/github/stars/mothinisuresh14072002/RentSafeAi?style=social)](https://github.com/mothinisuresh14072002/RentSafeAi/stargazers)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
-[![NestJS](https://img.shields.io/badge/NestJS-11-e0234e)](https://nestjs.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791)](https://www.postgresql.org/)
-
-
 **Identity KYC · Property Registry Verification · AI Document Intelligence · Presence Proof · Fraud Risk Scoring · Human Review**
 
 </div>
-
----
-
-
-## Try RentSafe AI locally
-
-The easiest path needs **Docker only**.
-
-**Windows**
-
-```bat
-git clone https://github.com/mothinisuresh14072002/RentSafeAi.git
-cd RentSafeAi\rent-safe-ai
-start-lan.bat
-```
-
-**Linux / macOS**
-
-```bash
-git clone https://github.com/mothinisuresh14072002/RentSafeAi.git
-cd RentSafeAi/rent-safe-ai
-chmod +x start-lan.sh
-./start-lan.sh
-```
-
-Then open **http://localhost**. The LAN stack creates PostgreSQL, Redis, MinIO, the private object-storage bucket, API, web app, and Nginx, and applies Prisma migrations automatically.
-
-> The built-in LAN credentials are for local/private-network demos only. Before Internet deployment, use `.env.production.example`, replace every secret, configure HTTPS, and connect approved production KYC/registry/payment providers.
 
 ---
 
@@ -404,7 +368,5 @@ When contributing verification providers, keep jurisdiction-specific code behind
 <div align="center">
 
 **RentSafe AI — prove the owner before trusting the listing.**
-
-If RentSafe AI is useful to you, consider starring the repository and opening an issue with the next fraud scenario or rental workflow you want covered.
 
 </div>
