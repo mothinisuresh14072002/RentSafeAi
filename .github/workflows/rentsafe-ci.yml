@@ -6,17 +6,26 @@ on:
   push:
     branches: ["main"]
 
+permissions:
+  contents: read
+
 concurrency:
-  group: rentsafe-ci-${{ github.ref }}
+  group: rentsafe-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   verify:
     name: Lint, Typecheck, Build and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: rent-safe-ai
+
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+      TURBO_TELEMETRY_DISABLED: "1"
 
     steps:
       - name: Checkout
@@ -37,6 +46,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter api prisma:generate
+
+      - name: Validate Prisma schema
+        run: pnpm --filter api prisma:validate
 
       - name: Lint
         run: pnpm lint
