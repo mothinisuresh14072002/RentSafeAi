@@ -12,10 +12,16 @@ export class StorageService {
   private readonly bucketName: string;
 
   constructor() {
-    // In a real app, these would come from ConfigService
+    const rawEndpoint = process.env.MINIO_ENDPOINT || 'localhost';
+    const port = process.env.MINIO_PORT || '9000';
+    const protocol = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
+    const endpoint = /^https?:\/\//i.test(rawEndpoint)
+      ? rawEndpoint
+      : `${protocol}://${rawEndpoint}:${port}`;
+
     this.s3Client = new S3Client({
       region: process.env.MINIO_REGION || 'us-east-1',
-      endpoint: process.env.MINIO_ENDPOINT || 'http://localhost:9000',
+      endpoint,
       credentials: {
         accessKeyId: process.env.MINIO_ROOT_USER || 'admin',
         secretAccessKey: process.env.MINIO_ROOT_PASSWORD || 'password123',
@@ -34,7 +40,6 @@ export class StorageService {
       Key: objectKey,
       ContentType: mimeType,
     });
-    // 15 minutes expiration
     return getSignedUrl(this.s3Client, command, { expiresIn: 900 });
   }
 
@@ -43,7 +48,6 @@ export class StorageService {
       Bucket: this.bucketName,
       Key: objectKey,
     });
-    // 15 minutes expiration
     return getSignedUrl(this.s3Client, command, { expiresIn: 900 });
   }
 }
