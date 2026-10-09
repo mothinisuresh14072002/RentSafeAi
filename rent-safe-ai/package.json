@@ -17,9 +17,9 @@
     "ops:retention": "powershell -ExecutionPolicy Bypass -File scripts/prune-retention.ps1"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
+    "turbo": "^2.11.7",
     "husky": "^9.0.11",
-    "lint-staged": "^15.2.2",
+    "lint-staged": "^17.6.0",
     "prettier": "^3.2.5"
   },
   "packageManager": "pnpm@9.0.0"
